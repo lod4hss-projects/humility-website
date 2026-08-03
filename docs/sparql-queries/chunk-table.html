@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Persons</title>
+  <title>Humility-Chunks</title>
   <link rel="stylesheet" href="./base_style.css">
 
   <!-- manages the enpoint address in just one same place-->
@@ -111,11 +111,11 @@
 
 
       let tableHTML = `<br/>
-      <table><thead><tr><th>Concept</th><th>Chunk</th><th>Card</th></tr></thead><tbody>`;
+      <table><thead><tr><th>Concepts</th><th>Chunk</th><th>Card</th></tr></thead><tbody>`;
       pageData.forEach(row => {
         tableHTML += `<tr><td>${escapeHtml(row.name)}</td>
           <td><a href="./instance-page.html?uri=${escapeHtml(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a></td>
-          <td><a href="./instance-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">View</a></td></tr>`;
+          <td><a href="./text-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">View</a></td></tr>`;
       });
       tableHTML += `</tbody></table>`;
       tableContainer.innerHTML = tableHTML;
