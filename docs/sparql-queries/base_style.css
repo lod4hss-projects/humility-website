@@ -19,3 +19,9 @@
             font-size: larger;
 
         }
+    td {
+     vertical-align: top;
+    padding-left: 10px;
+    padding-right: 10px;
+
+    }

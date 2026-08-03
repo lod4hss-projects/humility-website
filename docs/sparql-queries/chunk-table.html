@@ -52,28 +52,30 @@
         prefix sdh-short: <https://sdhss.org/ontology/shortcuts/>
         PREFIX onto: <https://ontome.net/ontology/>
 
-        SELECT ?concepts ?chunk ?textUri ?chunkUri 
-        WHERE {
-        {
-          SELECT (GROUP_CONCAT(?conceptLabel; SEPARATOR=", ") AS ?concepts) (max(?chunk) as ?chunk) ?textUri ?chunkUri 
+        SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
+          (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
+          (max(?chunk) as ?chunkText) ?textUri ?chunkUri 
           WHERE {
               ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
                   <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
-              ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk.
-              ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
+              ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk;
+                  <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
               ?conceptUriFilter <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabelFilter
-              optional {?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri.
-              ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel}
+              optional {
+                  ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
+                  ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
+                           a <https://sdhss.org/ontology/sources-information-metadata/C20>.
+                           }
+              optional {
+                  ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptClassUri. 
+                  ?conceptClassUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptClassLabel;
+                           a <https://sdhss.org/ontology/sources-information-metadata/C21>.}
           ${filterClause}
 
           }
           group by ?textUri ?chunkUri 
           order by ?textUri ?chunkUri 
-          limit 100          
-          }
-
-    
-          }
+          limit 100         
          
     
       `;
@@ -86,7 +88,8 @@
         allData = data.results.bindings.map(row => ({
           // uri: row.conceptUri?.value || '#',
           name: row.concepts?.value || 'N/A',
-          chunk: row.chunk?.value || 'N/A',
+          conceptClasses: row.conceptClasses?.value || 'N/A',
+          chunk: row.chunkText?.value || 'N/A',
           chunkUri: row.chunkUri?.value || 'N/A',
           textUri: row.textUri?.value || 'N/A'
         }));
@@ -111,9 +114,11 @@
 
 
       let tableHTML = `<br/>
-      <table><thead><tr><th>Concepts</th><th>Chunk</th><th>Card</th></tr></thead><tbody>`;
+      <table><thead><tr><th>Concepts</th><th>Classes</th><th>Chunk</th><th>Text</th></tr></thead><tbody>`;
       pageData.forEach(row => {
-        tableHTML += `<tr><td>${escapeHtml(row.name)}</td>
+        tableHTML += 
+        `<tr><td>${escapeHtml(row.name)}</td>
+         <td>${escapeHtml(row.conceptClasses)}</td>
           <td><a href="./instance-page.html?uri=${escapeHtml(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a></td>
           <td><a href="./text-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">View</a></td></tr>`;
       });
