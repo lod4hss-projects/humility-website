@@ -1,37 +1,51 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Humility-Text</title>
   <link rel="stylesheet" href="base_style.css">
 
   <!-- manages the enpoint address in just one same place-->
   <script src="address.js"></script>
-  
-  <style>
 
+  <style>
     td {
-     vertical-align: top;
-     padding: 15px;
-     background: #f1f2f3;
+      vertical-align: top;
+      padding: 15px;
+      background: #f1f2f3;
+    }
+
+    table {
+      border-collapse: separate;
+      /* Enables spacing */
+      border-spacing: 15px 0;
+      /* Horizontal spacing between columns, vertical between rows */
     }
 
     #tables-container {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
 
-      #outoing-section, #incoming-section {
-        flex: 1;
-        min-width: 400px;
-        padding: 1%;
-        max-width:fit-content;
-        background: #e5edef;
-      }
+    #outoing-section,
+    #incoming-section {
+      flex: 1;
+      min-width: 400px;
+      padding: 1%;
+      max-width: fit-content;
+      background: #e5edef;
+    }
   </style>
 </head>
+
 <body>
   <div class="entity-header" id="entity-header"></div>
+  
+  <div id="table-chunks"></div>
+  
+  <div id="pagination-chunks"></div>
+
   <div id="tables-container">
     <div id="outoing-section">
       <h3>Instance Properties</h3>
@@ -51,11 +65,11 @@
     const uri = urlParams.get('uri');
     const decodedURI = decodeURIComponent(uri);
 
-    const endpoint = address ;
-    const dataGraph = ' GRAPH <https://humility.lod4hss.cloud/resource/>'
-    const ontologyGraph = ''
-    const originatesFromGraph = 'GRAPH <https://humility.lod4hss.cloud/resource/originatesFrom>'
-    const baseFieldsGraph = 'GRAPH <https://humility.lod4hss.cloud/resource/baseFields>'
+    const endpoint = address;
+    const dataGraph = ' GRAPH <https://humility.lod4hss.cloud/resource/>'
+    const ontologyGraph = ''
+    const originatesFromGraph = 'GRAPH <https://humility.lod4hss.cloud/resource/originatesFrom>'
+    const baseFieldsGraph = 'GRAPH <https://humility.lod4hss.cloud/resource/baseFields>'
 
 
 
@@ -73,24 +87,27 @@
     // this function converts the URI to the elites suisses website URLs
     // according to the class: p, g etc.
     function convertEntityURI(uri) {
-        if (typeof uri !== 'string') return null;
+      if (typeof uri !== 'string') return null;
 
-        // Pattern 1: pXXXXX → /p/XXXXX
-        const pMatch = uri.match(/^https:\/\/humility.lod4hss.cloud\/resource\/(\d+)$/)
+      // Pattern 1: pXXXXX → /p/XXXXX
+      const pMatch = uri.match(/^https:\/\/humility.lod4hss.cloud\/resource\/([0-9a-f]+)$/)
 
-        // Unknown pattern
-        console.warn('URI does not match known patterns:', uri);
-        return null;
-      }
+      // Unknown pattern
+      console.warn('URI does not match known patterns:', uri);
+      return null;
+    }
 
     // this functions gets the data to write the entity header
     // and builds the correspondent HTML code
     async function fetchEntityInfo() {
       const query = `
-      SELECT  ?expressionLabel ?textUri ?text ?translationUri ?translation
+      SELECT  ?expressionLabel ?textUri ?text ?translationUri ?translation ?wisskiPageURL
         WHERE {
-            <${uri}> a <http://www.cidoc-crm.org/cidoc-crm/E33>;
-                <http://www.cidoc-crm.org/cidoc-crm/P190> ?text.
+            BIND( <${uri}> as ?textUri)
+            ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+                <http://www.cidoc-crm.org/cidoc-crm/P190> ?text;
+                <http://www.w3.org/2002/07/owl#sameAs> ?wisskiPageURL.
+                
             ## filter that excludes translations and other linguistic objects
             ?expression <http://www.cidoc-crm.org/cidoc-crm/P165> ?textUri;
                 a <http://iflastandards.info/ns/lrm/lrmoo/F2>;
@@ -105,8 +122,8 @@
       `;
 
       const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-          headers: { 'Accept': 'application/sparql-results+json' }
-        });
+        headers: { 'Accept': 'application/sparql-results+json' }
+      });
 
       if (!response.ok) {
         const text = await response.text();
@@ -120,29 +137,30 @@
         entityName = bindings[0].expressionLabel?.value || entityName;
         passageText = bindings[0].text?.value || passageText;
         textUri = bindings[0].textUri?.value || textUri;
+        wisskiPageURL = bindings[0].wisskiPageURL?.value || textUri;
         translationUri = bindings[0].translationUri?.value || translationUri;
         translation = bindings[0].translation?.value || translation;
-          }
+      }
 
       // prepare the Elites Suisses website URL 
       const publicUrl = convertEntityURI(uri);
-      
+
       // add the entity header 
       // it also adds a button to copy the URL and a link to the Elites Suisses website
       document.getElementById('entity-header').innerHTML = `
         <h3>${entityName}</h3>
-
+        <div id='button-div'></div>
         <table >
-          <tr >
+          <tr style='font-size:larger' >
               <td>${passageText}</td>
               <td>${translation}</td>
           </tr>
         </table>
         <br/>
       `;
-      if (publicUrl) {
+      if (wisskiPageURL) {
         document.getElementById('button-div').innerHTML += `
-           &nbsp; &nbsp; &nbsp; <a href="${publicUrl}" target="_blank">View on Elites Suisses</a></p>
+           &nbsp; &nbsp; &nbsp; <a href="${wisskiPageURL}" target="_blank">View on WissKI</a></p>
         `;
       }
     }
@@ -174,6 +192,99 @@
         });
     }
 
+
+
+async function executeAndRenderQuery(page) {
+  const offset = (page - 1) * pageSize;
+  
+  // 1. Construct the Query String
+  const query = `
+    SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
+           (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
+           (MAX(?chunk) AS ?chunkText) 
+           ?chunkUri 
+           ?textUri
+    WHERE {
+      BIND (<${uri}> AS ?textUri)
+      ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+               <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
+      ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk;
+                <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
+      ?conceptUriFilter <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabelFilter.
+      
+      OPTIONAL {
+        ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
+        ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
+                  a <https://sdhss.org/ontology/sources-information-metadata/C20>.
+      }
+      OPTIONAL {
+        ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptClassUri. 
+        ?conceptClassUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptClassLabel;
+                     a <https://sdhss.org/ontology/sources-information-metadata/C21>.
+      }
+    }
+    GROUP BY ?textUri ?chunkUri
+    ORDER BY ?textUri ?chunkUri
+    LIMIT ${pageSize}
+    OFFSET ${offset}
+  `;
+
+    console.log(query);
+
+
+    const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
+        headers: { 'Accept': 'application/sparql-results+json' }
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`SPARQL error: ${response.status} ${response.statusText}\n${text}`);
+      }
+
+      const data = await response.json();
+
+            // Log total count
+    console.log(`✅ Total rows fetched: ${data}`);
+
+
+      if (!data.results || !data.results.bindings) {
+        throw new Error('Invalid SPARQL JSON response');
+      }
+
+
+    // Process Data
+    
+    return data.results.bindings.map(binding => ({
+      textUri: binding.textUri?.value || '',
+      concepts: binding.concepts?.value || 'N/A',
+      conceptClasses: binding.conceptClasses?.value || 'N/A',
+      chunk: binding.chunkText?.value || 'N/A',
+      chunkUri: binding.chunkUri?.value || ''
+      }));
+
+
+}
+
+// provisoire
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("Page loaded. Starting query..."); // Check if this appears
+    executeAndRenderQuery(1); // <--- THIS TRIGGERS THE FUNCTION
+});
+
+
+
+
+
+
+
+
+// --- INITIALIZATION ---
+// Call this when your page loads or when the user clicks a "Search" button
+// executeAndRenderQuery(1);
+
+
+
+
+
     async function fetchOutgoingTriples(page) {
       const offset = (page - 1) * pageSize;
       const query = `
@@ -194,11 +305,11 @@
         LIMIT ${pageSize}
         OFFSET ${offset}
       `;
-
+ 
 
       const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-          headers: { 'Accept': 'application/sparql-results+json' }
-        });
+        headers: { 'Accept': 'application/sparql-results+json' }
+      });
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`SPARQL error: ${response.status} ${response.statusText}\n${text}`);
@@ -217,6 +328,7 @@
         oName: binding.oName?.value || ''
       }));
     }
+
 
     async function fetchIncomingTriples(page) {
       const offset = (page - 1) * pageSize;
@@ -246,10 +358,9 @@
 
       // const endpoint = ;
 
-      console.log(query)
-        const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-          headers: { 'Accept': 'application/sparql-results+json' }
-        });
+      const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
+        headers: { 'Accept': 'application/sparql-results+json' }
+      });
 
       if (!response.ok) {
         const text = await response.text();
@@ -266,9 +377,9 @@
         s: binding.s?.value || '',
         p: binding.p?.value || '',
         pLabel: binding.pLabel?.value || '',
-        sName: binding.sName?.value || ''
+        sName: binding.sNae?.value || ''
       }));
-}
+    }
 
     function getPredicateLabel(uri) {
       if (!uri) return uri;
@@ -297,8 +408,8 @@
           if (triple.o.startsWith('https://humility.lod4hss.cloud/resource/')) {
             href = `./instance-page.html?uri=${encodeURIComponent(triple.o)}`;
           }
-          
-          const oLabel = triple.oName.length > 0 ? triple.oName : triple.o ; 
+
+          const oLabel = triple.oName.length > 0 ? triple.oName : triple.o;
           objectDisplay = `<a href="${href}">${oLabel}</a>`;
         }
 
@@ -338,8 +449,8 @@
           if (triple.s.startsWith('https://humility.lod4hss.cloud/resource/')) {
             href = `./instance-page.html?uri=${encodeURIComponent(triple.s)}`;
           }
-          
-          const sLabel = triple.sName.length > 0 ? triple.sName : triple.s; 
+
+          const sLabel = triple.sName.length > 0 ? triple.sName : triple.s;
           subjectDisplay = `<a href="${href}">${sLabel}</a>`;
         }
 
@@ -434,4 +545,5 @@
 
   </script>
 </body>
+
 </html>
