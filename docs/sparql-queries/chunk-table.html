@@ -54,9 +54,10 @@
 
         SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
           (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
-          (max(?chunk) as ?chunkText) ?textUri ?chunkUri 
+          (max(?chunk) as ?chunkText) ?textUri ?textLabel ?chunkUri 
           WHERE {
               ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+                  <https://sdhss.org/ontology/shortcuts/P9> ?textLabel;
                   <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
               ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk;
                   <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
@@ -73,7 +74,7 @@
           ${filterClause}
 
           }
-          group by ?textUri ?chunkUri 
+          group by ?textUri ?textLabel ?chunkUri 
           order by ?textUri ?chunkUri 
           limit 100         
          
@@ -87,6 +88,7 @@
         const data = await response.json();
         allData = data.results.bindings.map(row => ({
           // uri: row.conceptUri?.value || '#',
+          textLabel: row.textLabel?.value || 'N/A',
           name: row.concepts?.value || 'N/A',
           conceptClasses: row.conceptClasses?.value || 'N/A',
           chunk: row.chunkText?.value || 'N/A',
@@ -120,7 +122,7 @@
         `<tr><td>${escapeHtml(row.name)}</td>
          <td>${escapeHtml(row.conceptClasses)}</td>
           <td><a href="./instance-page.html?uri=${escapeHtml(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a></td>
-          <td><a href="./text-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">View</a></td></tr>`;
+          <td><a href="./text-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">${row.textLabel}</a></td></tr>`;
       });
       tableHTML += `</tbody></table>`;
       tableContainer.innerHTML = tableHTML;

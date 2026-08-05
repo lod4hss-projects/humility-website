@@ -20,13 +20,41 @@
       /* Enables spacing */
       border-spacing: 15px 0;
       /* Horizontal spacing between columns, vertical between rows */
+       table-layout: fixed; /* Forces strict adherence to width percentages */
+      width: 100%;
+
+    }
+ 
+    span {
+        display: inline-block; 
+        vertical-align: middle; 
+        margin-right: 10px;
+        line-height: 1; /* Crucial: Prevents extra vertical space from text */
     }
 
+    /* CRITICAL: Reset button defaults that break alignment */
+    #button-div button {
+        vertical-align: middle;
+        margin: 0;
+        padding: 4px 8px; /* Explicit padding */
+        line-height: 1;
+        display: inline-block;
+    }
+
+
+        /* Ensure the link also aligns */
+    #button-div + span a {
+        vertical-align: middle;
+        text-decoration: none;
+}
     #tables-container {
       display: flex;
       gap: 20px;
       flex-wrap: wrap;
     }
+
+
+
 
     #outoing-section,
     #incoming-section {
@@ -42,22 +70,15 @@
 <body>
   <div class="entity-header" id="entity-header"></div>
   
-  <div id="table-chunks"></div>
   
-  <div id="pagination-chunks"></div>
 
   <div id="tables-container">
-    <div id="outoing-section">
-      <h3>Instance Properties</h3>
-      <div id="outgoing-table"></div>
-      <div class="pagination" id="pagination-outgoing"></div>
+    <div id="chunks-section"> 
+      <div id="table-chunks"></div>
+      <div class="pagination" id="pagination-chunks"></div>
     </div>
-    <div id="incoming-section">
-      <h3>Incoming Properties</h3>
-      <div id="incoming-table"></div>
-      <div class="pagination" id="pagination-incoming"></div>
-    </div>
-  </div>
+
+
   <div class="pagination" id="pagination"></div>
 
   <script>
@@ -151,10 +172,19 @@
         <h3>${entityName}</h3>
         <div id='button-div'></div>
         <table >
-          <tr style='font-size:larger' >
+        <thead>
+        <tr>
+          <!-- Hidden Header Row -->
+          <th style="width: 50%; visibility: hidden; height: 0; padding: 0; border: none;">Original Text</th>
+          <th style="width: 50%; visibility: hidden; height: 0; padding: 0; border: none;">Translation</th>
+        </tr>
+      </thead>
+      <tbody>
+         <tr style='font-size:larger' >
               <td>${passageText}</td>
               <td>${translation}</td>
           </tr>
+      </tbody>
         </table>
         <br/>
       `;
@@ -163,6 +193,9 @@
            &nbsp; &nbsp; &nbsp; <a href="${wisskiPageURL}" target="_blank">View on WissKI</a></p>
         `;
       }
+
+      
+      
     }
 
     function copyURI() {
@@ -194,353 +227,206 @@
 
 
 
-async function executeAndRenderQuery(page) {
-  const offset = (page - 1) * pageSize;
-  
-  // 1. Construct the Query String
-  const query = `
-    SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
-           (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
-           (MAX(?chunk) AS ?chunkText) 
-           ?chunkUri 
-           ?textUri
-    WHERE {
-      BIND (<${uri}> AS ?textUri)
-      ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
-               <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
-      ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk;
-                <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
-      ?conceptUriFilter <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabelFilter.
+    // --- Chunks and concepts ---
+    // Query the SPARQL endpoint for text chunks linked to the current entity and their concepts.
+    async function fetchChunksAndConcepts(page) {
+      const offset = (page - 1) * pageSize;
       
-      OPTIONAL {
-        ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
-        ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
-                  a <https://sdhss.org/ontology/sources-information-metadata/C20>.
-      }
-      OPTIONAL {
-        ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptClassUri. 
-        ?conceptClassUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptClassLabel;
-                     a <https://sdhss.org/ontology/sources-information-metadata/C21>.
-      }
-    }
-    GROUP BY ?textUri ?chunkUri
-    ORDER BY ?textUri ?chunkUri
-    LIMIT ${pageSize}
-    OFFSET ${offset}
-  `;
+      // 1. Construct the Query String
+      const query = `
+        SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
+              (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
+              (MAX(?chunk) AS ?chunkText) 
+              ?chunkUri 
+              ?textUri
+        WHERE {
+          BIND (<${uri}> AS ?textUri)
+          ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+                  <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
+          ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk;
+                    <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
+          ?conceptUriFilter <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabelFilter.
+          
+          OPTIONAL {
+            ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
+            ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
+                      a <https://sdhss.org/ontology/sources-information-metadata/C20>.
+          }
+          OPTIONAL {
+            ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptClassUri. 
+            ?conceptClassUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptClassLabel;
+                        a <https://sdhss.org/ontology/sources-information-metadata/C21>.
+          }
+        }
+        GROUP BY ?textUri ?chunkUri
+        ORDER BY ?textUri ?chunkUri
+        LIMIT ${pageSize}
+        OFFSET ${offset}
+      `;
 
-    console.log(query);
-
-
-    const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-        headers: { 'Accept': 'application/sparql-results+json' }
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`SPARQL error: ${response.status} ${response.statusText}\n${text}`);
-      }
-
-      const data = await response.json();
-
-            // Log total count
-    console.log(`✅ Total rows fetched: ${data}`);
-
-
-      if (!data.results || !data.results.bindings) {
-        throw new Error('Invalid SPARQL JSON response');
-      }
+      //console.log(query);
 
 
-    // Process Data
-    
-    return data.results.bindings.map(binding => ({
-      textUri: binding.textUri?.value || '',
-      concepts: binding.concepts?.value || 'N/A',
-      conceptClasses: binding.conceptClasses?.value || 'N/A',
-      chunk: binding.chunkText?.value || 'N/A',
-      chunkUri: binding.chunkUri?.value || ''
-      }));
+      const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
+          headers: { 'Accept': 'application/sparql-results+json' }
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`SPARQL error: ${response.status} ${response.statusText}\n${text}`);
+        }
 
+        const data = await response.json();
+
+        if (!data.results || !data.results.bindings) {
+          throw new Error('Invalid SPARQL JSON response');
+        }
+
+      // console.log(data);
+
+
+
+      // Process Data
+      
+      return data.results.bindings.map(binding => ({
+        textUri: binding.textUri?.value || '',
+        concepts: binding.concepts?.value || 'N/A',
+        conceptClasses: binding.conceptClasses?.value || 'N/A',
+        chunk: binding.chunkText?.value || 'N/A',
+        chunkUri: binding.chunkUri?.value || ''
+        }));
+
+       
 
 }
 
-// provisoire
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("Page loaded. Starting query..."); // Check if this appears
-    executeAndRenderQuery(1); // <--- THIS TRIGGERS THE FUNCTION
-});
+    // new 
+    // Render the chunk-and-concepts table into the page.
+function renderChunksTable(rows) {
+  const container = document.getElementById('table-chunks');
+  
+  if (!rows || rows.length === 0) {
+    container.innerHTML = '<p>No chunks found.</p>';
+    return;
+  }
 
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 50%;">Chunk</th>
+          <th style="width: 25%;">Concepts</th>
+          <th style="width: 25%;"">Concept Classes</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
+  rows.forEach(row => {
+    let chunkDisplay = row.chunk;
 
-
-
-
-
-
-// --- INITIALIZATION ---
-// Call this when your page loads or when the user clicks a "Search" button
-// executeAndRenderQuery(1);
-
-
-
-
-
-    async function fetchOutgoingTriples(page) {
-      const offset = (page - 1) * pageSize;
-      const query = `
-        SELECT ?p ?o ?pLabel ?oName WHERE {
-         # ${dataGraph} 
-         {
-          BIND (<${uri}> AS ?s)
-          ?s ?p ?o.
-          MINUS { ${baseFieldsGraph} {?s ?p ?o }}
-          MINUS { ${originatesFromGraph} {?s ?p ?o }}          
-          OPTIONAL {?o <https://sdhss.org/ontology/shortcuts/P9> ?oName}
-          OPTIONAL {?o <http://www.cidoc-crm.org/cidoc-crm/P190> ?oName}
-          OPTIONAL {?p <http://www.w3.org/2000/01/rdf-schema#label> ?pLbl}
-          BIND (COALESCE(?pLbl, 'Unknown Label') AS ?pLabel )
-          FILTER (?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
-        }
-          }
-        LIMIT ${pageSize}
-        OFFSET ${offset}
-      `;
- 
-
-      const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-        headers: { 'Accept': 'application/sparql-results+json' }
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`SPARQL error: ${response.status} ${response.statusText}\n${text}`);
+    // If chunkUri is a valid URL, make the chunk text clickable
+    if (row.chunkUri && row.chunkUri.startsWith('http')) {
+      let href = row.chunkUri;
+      
+      // If it's an internal resource, link to instance-page.html
+      if (row.chunkUri.startsWith('https://humility.lod4hss.cloud/resource/')) {
+        href = `./instance-page.html?uri=${encodeURIComponent(row.chunkUri)}`;
       }
 
-      const data = await response.json();
-
-      if (!data.results || !data.results.bindings) {
-        throw new Error('Invalid SPARQL JSON response');
-      }
-
-      return data.results.bindings.map(binding => ({
-        p: binding.p?.value || '',
-        o: binding.o?.value || '',
-        pLabel: binding.pLabel?.value || '',
-        oName: binding.oName?.value || ''
-      }));
+      chunkDisplay = `<a href="${href}" target="_blank">${row.chunk}</a>`;
     }
 
+    // Handle cases where concepts might be missing
+    const conceptsDisplay = row.concepts || 'N/A';
+    const conceptClassesDisplay = row.conceptClasses || 'N/A';
 
-    async function fetchIncomingTriples(page) {
-      const offset = (page - 1) * pageSize;
-      const query = `
-        SELECT ?s ?p ?pLabel ?sName WHERE {
-         # ${dataGraph} 
-         {
-          BIND (<${uri}> AS ?o)
-          ?s ?p ?o.
-          MINUS { ${baseFieldsGraph} {?s ?p ?o }}
-          MINUS { ${originatesFromGraph} {?s ?p ?o }}
-          OPTIONAL {?s <http://www.w3.org/2000/01/rdf-schema#label> ?sLabel}
-          OPTIONAL {?s <http://www.cidoc-crm.org/cidoc-crm/P190> ?sLabel}
-          OPTIONAL {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?sClass.
-                ?sClass <http://www.w3.org/2000/01/rdf-schema#label> ?sClassLabel}
-          BIND (COALESCE(?sLabel, ?sClassLabel, 'Unknown Label') AS ?sName )
-          OPTIONAL {?p <http://www.w3.org/2000/01/rdf-schema#label> ?pLbl}
-                    OPTIONAL {?p <http://www.w3.org/2000/01/rdf-schema#label> ?pLbl}
-          BIND (COALESCE(?pLbl, 'Unknown Label') AS ?pLabel )
-          FILTER (?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
-          }
-          }
-        ORDER BY ?sName
-        LIMIT ${pageSize}
-        OFFSET ${offset}
-      `;
+    html += `
+      <tr>
+        <td>${chunkDisplay}</td>
+        <td>${conceptsDisplay}</td>
+        <td>${conceptClassesDisplay}</td>
+      </tr>
+    `;
+  });
 
-      // const endpoint = ;
-
-      const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-        headers: { 'Accept': 'application/sparql-results+json' }
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`SPARQL error (incoming): ${response.status} ${response.statusText}\n${text}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.results || !data.results.bindings) {
-        throw new Error('Invalid SPARQL JSON response (incoming)');
-      }
-
-      return data.results.bindings.map(binding => ({
-        s: binding.s?.value || '',
-        p: binding.p?.value || '',
-        pLabel: binding.pLabel?.value || '',
-        sName: binding.sNae?.value || ''
-      }));
-    }
-
-    function getPredicateLabel(uri) {
-      if (!uri) return uri;
-      const lastHash = uri.lastIndexOf('#');
-      const lastSlash = uri.lastIndexOf('/');
-      const pos = Math.max(lastHash, lastSlash);
-      return pos > 0 ? uri.substring(pos + 1) : uri;
-    }
-
-    function renderOutgoingTable(triples) {
-      const container = document.getElementById('outgoing-table');
-      let html = `
-        <table>
-          <thead>
-            <tr><th>Predicate</th><th>Object</th></tr>
-          </thead>
-          <tbody>
-      `;
-      triples.forEach(triple => {
-        let objectDisplay = triple.o;
-
-        // If object is a URL (starts with http)
-        if (triple.o.startsWith('http')) {
-          let href = triple.o;
-          // If it's an internal resource, link to person-page.html
-          if (triple.o.startsWith('https://humility.lod4hss.cloud/resource/')) {
-            href = `./instance-page.html?uri=${encodeURIComponent(triple.o)}`;
-          }
-
-          const oLabel = triple.oName.length > 0 ? triple.oName : triple.o;
-          objectDisplay = `<a href="${href}">${oLabel}</a>`;
-        }
-
-        // Format predicate as link with short label
-        // const predURI = getPredicateLabel(triple.p);
-        const predLink = `<a href="${triple.p}" target="_blank">${triple.pLabel}</a>`;
-        //const predLink = `<span>${predURI}</span>`;
-
-        html += `
-          <tr>
-             <td>${predLink}</td>
-            <td>${objectDisplay}</td>
-          </tr>
-        `;
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    }
+  html += '</tbody></table><div id="final-links"></div>';
 
 
-    function renderIncomingTable(triples) {
-      const container = document.getElementById('incoming-table');
-      let html = `
-        <table>
-          <thead>
-            <tr><th>Subject</th><th>Predicate</th></tr>
-          </thead>
-          <tbody>
-      `;
-      triples.forEach(triple => {
-        let subjectDisplay = triple.s;
+  container.innerHTML = html;
 
-        // If subject is a URL (starts with http)
-        if (triple.s.startsWith('http')) {
-          let href = triple.s;
-          // If it's an internal resource, link to person-page.html
-          if (triple.s.startsWith('https://humility.lod4hss.cloud/resource/')) {
-            href = `./instance-page.html?uri=${encodeURIComponent(triple.s)}`;
-          }
+  const finalLinksDiv = document.getElementById('final-links');
 
-          const sLabel = triple.sName.length > 0 ? triple.sName : triple.s;
-          subjectDisplay = `<a href="${href}">${sLabel}</a>`;
-        }
 
-        // Format predicate as link with short label
-        // const predLabel = getPredicateLabel(triple.p);
-        const predLink = `<a href="${triple.p}" target="_blank">${triple.pLabel}</a>`;
-        // const predLink = `<span>${predLabel}</span>`;
 
-        html += `
-          <tr>
-            <td>${subjectDisplay}</td>
-            <td>${predLink}</td>
-          </tr>
-        `;
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    }
+    // 4. Populate Final Links
+  if (finalLinksDiv) {
+    finalLinksDiv.innerHTML = `
+      <p style="margin-top: 10px;">
+        <span style="display: inline-block; margin-right: 15px;">
+            <a href="./chunk-table.html">Back to chunks' list</a>
+        </span>
+        <span style="display: inline-block;">
+            <a href="./instance-page.html?uri=${textUri}" target="_blank">Text Triples</a>
+        </span>
+      </p>  
+    `;
+  } else {
+    console.error("Could not find 'final-links' div after rendering header.");
+  }      
+}
+
+
 
     // --- Separate Pagination State ---
-    let currentPageOutgoing = 1;
-    let currentPageIncoming = 1;
+    let currentPageChunks = 1;
+
+
+
 
     // --- Render Pagination for Outgoing ---
-    function renderPaginationOutgoing(hasMore) {
-      const pagination = document.getElementById('pagination-outgoing');
+    function renderPaginationChunk(hasMore) {
+      const pagination = document.getElementById('pagination-chunks');
+
+      if (!pagination) return; // Safety check
+
+      // Clear previous content
+      pagination.innerHTML = '';
+      
       let html = '';
 
-      if (currentPageOutgoing > 1) {
-        html += '<button onclick="goToPageOutgoing(1)">First</button>';
-        html += `<button onclick="goToPageOutgoing(${currentPageOutgoing - 1})">Previous</button>`;
+      if (currentPageChunks > 1) {
+        html += '<button onclick="goToPageChunks(1)">First</button>';
+        html += `<button onclick="goToPageChunks(${currentPageChunks - 1})">Previous</button>`;
       }
 
       if (hasMore) {
-        html += `<button onclick="goToPageOutgoing(${currentPageOutgoing + 1})">Next</button>`;
+        html += `<button onclick="goToPageChunks(${currentPageChunks + 1})">Next</button>`;
       }
 
       pagination.innerHTML = html;
     }
 
-    // --- Render Pagination for Incoming ---
-    function renderPaginationIncoming(hasMore) {
-      const pagination = document.getElementById('pagination-incoming');
-      let html = '';
 
-      if (currentPageIncoming > 1) {
-        html += '<button onclick="goToPageIncoming(1)">First</button>';
-        html += `<button onclick="goToPageIncoming(${currentPageIncoming - 1})">Previous</button>`;
-      }
 
-      if (hasMore) {
-        html += `<button onclick="goToPageIncoming(${currentPageIncoming + 1})">Next</button>`;
-      }
-
-      pagination.innerHTML = html;
-    }
-
-    // --- Go to Page for Outgoing ---
-    async function goToPageOutgoing(page) {
-      currentPageOutgoing = page;
+      // --- Go to Page for Chunks ---
+    async function goToPageChunks(page) {
+      currentPageChunks = page;
       try {
-        const triples = await fetchOutgoingTriples(page, 'outgoing'); // or your existing fetchTriples()
-        renderOutgoingTable(triples, 'outgoing-table');
-        renderPaginationOutgoing(triples.length === pageSize);
+        const rows = await fetchChunksAndConcepts(page); 
+        renderChunksTable(rows, 'chunks-table');
+        renderPaginationOutgoing(rows.length === pageSize);
       } catch (err) {
-        document.getElementById('outgoing-table').innerHTML =
+        document.getElementById('chunks-table').innerHTML =
           `<p style="color:red;">Error: ${err.message}</p>`;
-        document.getElementById('pagination-outgoing').innerHTML = '';
+        document.getElementById('pagination-chunks').innerHTML = '';
       }
     }
 
-    // --- Go to Page for Incoming ---
-    async function goToPageIncoming(page) {
-      currentPageIncoming = page;
-      try {
-        const triples = await fetchIncomingTriples(page, 'incoming'); // or your fetchIncomingTriples()
-        renderIncomingTable(triples); // or renderTable(triples, 'incoming-table') if unified
-        renderPaginationIncoming(triples.length === pageSize);
-      } catch (err) {
-        document.getElementById('incoming-table').innerHTML =
-          `<p style="color:red;">Error: ${err.message}</p>`;
-        document.getElementById('pagination-incoming').innerHTML = '';
-      }
-    }
 
     // --- Initial Load ---
     (async () => {
       await fetchEntityInfo();
-      goToPageOutgoing(1);
-      goToPageIncoming(1);
+      goToPageChunks(1)
     })();
 
   </script>
