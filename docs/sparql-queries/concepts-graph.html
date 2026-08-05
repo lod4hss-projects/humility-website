@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concepts Network Graph</title>
+  <link rel="stylesheet" href="./base_style.css">
+  <script src="address.js"></script>
+  <!-- Load D3.js library -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <style>
+    /* Container for the graph area */
+    #graphContainer {
+      width: 100%;
+      height: 80vh;
+      border: 1px solid #ccc;
+      background-color: #ffffff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Node circle styling */
+    .node circle {
+      stroke: #fff;
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: opacity 0.3s, stroke 0.3s;
+    }
+
+    .node circle:hover {
+      stroke: #333;
+      stroke-width: 3px;
+    }
+
+    /* Node label styling */
+    .node text {
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+      text-shadow: 
+        -1px -1px 0 #fff, 1px -1px 0 #fff,
+        -1px 1px 0 #fff, 1px 1px 0 #fff;
+      transition: opacity 0.3s;
+    }
+
+    /* Tooltip styling */
+    #tooltip {
+      position: absolute;
+      text-align: center;
+      padding: 8px;
+      font: 12px sans-serif;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      pointer-events: none;
+      opacity: 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+
+    /* Controls area styling */
+    .controls {
+      margin: 10px 0;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    input[type="number"], input[type="text"] {
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    input[type="number"] { width: 60px; }
+    input[type="text"] { width: 200px; }
+
+    /* Reset Button styling */
+    button.reset-btn {
+      padding: 6px 12px;
+      background-color: #0056b3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: auto;
+    }
+    button.reset-btn:hover {
+      background-color: #004494;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <h1>Concepts Co-occurrence Network</h1>
+    <div class="controls">
+      <div class="control-group">
+        <label for="searchInput">Highlight Name:</label>
+        <input type="text" id="searchInput" value="" placeholder="Type to highlight...">
+      </div>
+      <div class="control-group">
+        <label for="minChunks">Min Chunks:</label>
+        <input type="number" id="minChunks" value="3" min="1">
+      </div>
+      <button class="reset-btn" id="resetBtn">Reset View & Clear Highlight</button>
+    </div>
+    <div id="graphContainer"></div>
+    <div id="tooltip"></div>
+  </div>
+
+  <script>
+    const endpoint = address;
+    const tooltip = d3.select("#tooltip");
+    
+    let width = document.getElementById('graphContainer').clientWidth;
+    let height = document.getElementById('graphContainer').clientHeight;
+
+    // SVG Setup
+    const svg = d3.select("#graphContainer").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .call(d3.zoom().on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      }))
+      .append("g");
+
+    const g = svg.append("g");
+
+    let simulation;
+    let allNodes = [];
+    let allLinks = [];
+    let highlightedName = ''; // Stores the current search term for highlighting
+
+    async function fetchData() {
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      const minChunks = parseInt(document.getElementById('minChunks').value, 10) || 1;
+
+      // Update global highlight variable
+      highlightedName = searchTerm.toLowerCase();
+
+      // Name filter is REMOVED from SPARQL. We fetch ALL data matching minChunks.
+      // The search term is only used locally for visual highlighting.
+      
+      const countQuery = `
+        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+        PREFIX sdh-short: <https://sdhss.org/ontology/shortcuts/>
+        PREFIX meta: <https://sdhss.org/ontology/sources-information-metadata/>
+        SELECT ?conceptUri ?conceptLabel (COUNT(DISTINCT ?chunk) as ?count)
+        WHERE {
+          ?chunk crm:P67 ?conceptUri .
+          ?conceptUri sdh-short:P9 ?conceptLabel ; a meta:C20 .
+        }
+        GROUP BY ?conceptUri ?conceptLabel
+        HAVING (COUNT(DISTINCT ?chunk) >= ${minChunks})
+      `;
+
+      try {
+        const countResp = await fetch(endpoint + '?query=' + encodeURIComponent(countQuery), {
+          headers: { 'Accept': 'application/sparql-results+json' }
+        });
+        const countData = await countResp.json();
+        
+        const nodeMap = new Map();
+        countData.results.bindings.forEach(row => {
+          const count = parseInt(row.count.value, 10);
+          nodeMap.set(row.conceptUri.value, {
+            id: row.conceptUri.value,
+            label: row.conceptLabel.value,
+            count: count
+          });
+        });
+
+        if (nodeMap.size === 0) {
+          allNodes = [];
+          allLinks = [];
+          renderGraph();
+          return;
+        }
+
+        // Fetch ALL edges (no name filter in SPARQL)
+        const edgeQuery = `
+          PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+          PREFIX sdh-short: <https://sdhss.org/ontology/shortcuts/>
+          PREFIX meta: <https://sdhss.org/ontology/sources-information-metadata/>
+          SELECT ?sourceUri ?targetUri (COUNT(DISTINCT ?chunk) as ?weight)
+          WHERE {
+            ?chunk crm:P67 ?sourceUri ; crm:P67 ?targetUri .
+            ?sourceUri sdh-short:P9 ?sourceLabel ; a meta:C20 .
+            ?targetUri sdh-short:P9 ?targetLabel ; a meta:C20 .
+            FILTER(str(?sourceUri) < str(?targetUri))
+          }
+          GROUP BY ?sourceUri ?targetUri
+        `;
+
+        const edgeResp = await fetch(endpoint + '?query=' + encodeURIComponent(edgeQuery), {
+          headers: { 'Accept': 'application/sparql-results+json' }
+        });
+        const edgeData = await edgeResp.json();
+
+        // DEBUG LOGGING
+        console.log("Total Nodes fetched:", nodeMap.size);
+        console.log("Raw Edge Results from SPARQL:", edgeData.results.bindings.length);
+        
+        const nodes = Array.from(nodeMap.values());
+        const links = [];
+
+        edgeData.results.bindings.forEach(row => {
+          const sourceId = row.sourceUri.value;
+          const targetId = row.targetUri.value;
+          const weight = parseInt(row.weight.value, 10);
+
+          if (nodeMap.has(sourceId) && nodeMap.has(targetId)) {
+            links.push({
+              source: sourceId,
+              target: targetId,
+              weight: weight
+            });
+          }
+        });
+
+        console.log("Filtered Links to be drawn:", links.length);
+        if(links.length === 0) {
+          console.warn("No edges found! Check if concepts co-occur in the same chunks.");
+        }
+
+        allNodes = nodes;
+        allLinks = links;
+        
+        renderGraph();
+
+      } catch (error) {
+        document.getElementById('graphContainer').innerHTML = `<div style="padding:20px; color:red;">Error loading data: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+
+    function renderGraph() {
+      g.selectAll("*").remove();
+
+      if (allNodes.length === 0) {
+        g.append("text").attr("x", width/2).attr("y", height/2).text("No concepts found matching criteria.").attr("text-anchor", "middle").style("font-size", "16px");
+        return;
+      }
+
+      const maxCount = d3.max(allNodes, d => d.count);
+      const minCount = d3.min(allNodes, d => d.count);
+      const rangeMin = minCount === maxCount ? minCount * 0.8 : minCount;
+
+      const radiusScale = d3.scaleSqrt()
+        .domain([rangeMin, maxCount])
+        .range([10, 35]);
+
+      // Simulation Configuration
+      simulation = d3.forceSimulation(allNodes)
+        .force("link", d3.forceLink(allLinks).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-500))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collide", d3.forceCollide().radius(d => radiusScale(d.count) + 5));
+
+      // --- 1. DRAW LINKS ---
+      const link = g.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(allLinks)
+        .join("line")
+        .attr("stroke", "#000000")
+        .attr("stroke-opacity", 0.3)
+        .attr("stroke-width", d => {
+          const w = Math.sqrt(d.weight) * 1.1; 
+          return w < 1 ? 1 : w; 
+        })
+        // Highlight Logic: Dim if neither source nor target matches search
+        .attr("opacity", d => {
+          if (!highlightedName) return 1;
+          const sourceMatch = d.source.label.toLowerCase().includes(highlightedName);
+          const targetMatch = d.target.label.toLowerCase().includes(highlightedName);
+          return (sourceMatch || targetMatch) ? 1 : 0.2;
+        });
+
+      // --- 2. DRAW LINK LABELS ---
+      const linkText = g.append("g")
+        .attr("class", "link-texts")
+        .selectAll("text")
+        .data(allLinks)
+        .join("text")
+        .attr("font-size", "14px")
+        .attr("font-weight", "900")
+        .attr("fill", "#d32f2f")
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", "3px")
+        .attr("paint-order", "stroke")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .text(d => d.weight)
+        // Highlight Logic: Dim if neither source nor target matches search
+        .attr("opacity", d => {
+          if (!highlightedName) return 1;
+          const sourceMatch = d.source.label.toLowerCase().includes(highlightedName);
+          const targetMatch = d.target.label.toLowerCase().includes(highlightedName);
+          return (sourceMatch || targetMatch) ? 1 : 0.1;
+        });
+
+      // --- 3. DRAW NODES ---
+      const node = g.append("g")
+        .attr("class", "nodes")
+        .selectAll("g")
+        .data(allNodes)
+        .join("g")
+        .attr("class", "node")
+        .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
+
+      node.append("circle")
+        .attr("r", d => radiusScale(d.count))
+        .attr("fill", "#4a90e2")
+        // Highlight Logic: Dim if node label doesn't match search
+        .attr("opacity", d => {
+          if (!highlightedName) return 1;
+          return d.label.toLowerCase().includes(highlightedName) ? 1 : 0.3;
+        })
+        .on("mouseover", (event, d) => {
+          tooltip.transition().duration(200).style("opacity", .95);
+          tooltip.html(`<strong>${d.label}</strong><br/>Chunks: ${d.count}`)
+            .style("left", (event.pageX + 15) + "px")
+            .style("top", (event.pageY - 15) + "px");
+            
+          // Highlight connected edges on hover (overrides search highlight temporarily)
+          link.attr("stroke", l => (l.source === d || l.target === d) ? "#000" : "#eee");
+          link.attr("stroke-opacity", l => (l.source === d || l.target === d) ? 1 : 0.05);
+          linkText.attr("opacity", l => (l.source === d || l.target === d) ? 1 : 0.05);
+        })
+        .on("mouseout", () => {
+          tooltip.transition().duration(500).style("opacity", 0);
+          // Restore search highlight state
+          link.attr("stroke", "#000000");
+          link.attr("stroke-opacity", 0.9);
+          // Re-apply search opacity logic
+          link.attr("opacity", l => {
+            if (!highlightedName) return 1;
+            const sMatch = l.source.label.toLowerCase().includes(highlightedName);
+            const tMatch = l.target.label.toLowerCase().includes(highlightedName);
+            return (sMatch || tMatch) ? 1 : 0.1;
+          });
+          linkText.attr("opacity", l => {
+            if (!highlightedName) return 1;
+            const sMatch = l.source.label.toLowerCase().includes(highlightedName);
+            const tMatch = l.target.label.toLowerCase().includes(highlightedName);
+            return (sMatch || tMatch) ? 1 : 0.1;
+          });
+        });
+
+      node.append("text")
+        .attr("dx", d => radiusScale(d.count) + 8)
+        .attr("dy", ".35em")
+        .text(d => d.label)
+        // Highlight Logic: Dim if node label doesn't match search
+        .attr("opacity", d => {
+          if (!highlightedName) return 1;
+          return d.label.toLowerCase().includes(highlightedName) ? 1 : 0.3;
+        });
+
+      node.on("click", (event, d) => {
+        window.open('./instance-page.html?uri='+d.id, "_blank"); 
+      });
+
+      simulation.on("tick", () => {
+        link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+        linkText
+          .attr("x", d => (d.source.x + d.target.x) / 2)
+          .attr("y", d => (d.source.y + d.target.y) / 2);
+
+        node
+          .attr("transform", d => `translate(${d.x},${d.y})`);
+      });
+
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+    }
+
+    // Reset Button: Clears Zoom, Restarts Simulation, AND Clears Highlight
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      highlightedName = '';
+      
+      svg.transition().duration(750).call(
+        d3.zoom().transform, 
+        d3.zoomIdentity
+      );
+      
+      if(simulation) {
+        simulation.alpha(1).restart();
+      }
+      // Re-render to remove dimming
+      renderGraph();
+      console.log("View reset: Zoom cleared, simulation restarted, highlight cleared.");
+    });
+
+    let debounceTimer;
+    function triggerUpdate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        // We don't need to fetch data again, just re-render with new highlight state
+        // However, if you want to change Min Chunks, you DO need fetchData().
+        // Checking if Min Chunks changed would require tracking state, 
+        // but for simplicity, if "Min Chunks" changes, we reload. If only search changes, we just re-render.
+        
+        const minChunks = parseInt(document.getElementById('minChunks').value, 10) || 1;
+        // Simple heuristic: if input is searchInput, just re-render. If minChunks, fetch.
+        if (document.activeElement === document.getElementById('searchInput')) {
+           highlightedName = document.getElementById('searchInput').value.trim().toLowerCase();
+           renderGraph();
+        } else {
+           fetchData();
+        }
+      }, 300);
+    }
+
+    document.getElementById('searchInput').addEventListener('input', triggerUpdate);
+    document.getElementById('minChunks').addEventListener('change', fetchData);
+
+    window.addEventListener('resize', () => {
+      width = document.getElementById('graphContainer').clientWidth;
+      height = document.getElementById('graphContainer').clientHeight;
+      svg.attr("width", width).attr("height", height);
+      if(simulation) {
+        simulation.force("center", d3.forceCenter(width / 2, height / 2));
+        simulation.alpha(0.3).restart();
+      }
+    });
+
+    // Initial Load
+    fetchData();
+
+  </script>
+</body>
+</html>

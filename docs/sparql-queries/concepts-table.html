@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concepts Distribution</title>
+  <link rel="stylesheet" href="./base_style.css">
+  <!-- Load Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="address.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .control-group label {
+      font-size: 0.85em;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* Layout for Table and Chart side-by-side */
+    .dashboard {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      height: 75vh;
+    }
+
+    .table-section {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chart-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    #tableContainer {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      padding: 10px;
+    }
+
+    #chartContainer {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    /* Link styling */
+    a.concept-link {
+      color: #0056b3;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    a.concept-link:hover {
+      text-decoration: underline;
+      color: #003d80;
+    }
+
+    .pagination {
+      margin-top: 10px;
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .pagination button {
+      padding: 5px 10px;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 3px;
+    }
+
+    .pagination button.active {
+      background: #0056b3;
+      color: white;
+      border-color: #0056b3;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Concepts Distribution</h1>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label for="searchInput">Filter Name:</label>
+      <input type="text" id="searchInput" value="" placeholder="Type concept name...">
+    </div>
+    <div class="control-group">
+      <label for="exactCountInput">Exact Mentions:</label>
+      <input type="number" id="exactCountInput" value="" min="1" placeholder="e.g. 5">
+    </div>
+  </div>
+
+  <div class="dashboard">
+    <!-- Left: Table -->
+    <div class="table-section">
+      <h3>Concept List</h3>
+      <div id="tableContainer">Loading data...</div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Right: Chart -->
+    <div class="chart-section">
+      <h3>Mention Count Distribution</h3>
+      <div id="chartContainer">
+        <canvas id="distributionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const endpoint = address;
+    const ITEMS_PER_PAGE = 20;
+    
+    let allData = []; // Stores ALL data fetched from SPARQL (without count filter)
+    let filteredData = []; // Stores data after applying Name and Exact Count filters
+    let currentPage = 1;
+    let distributionChart = null;
+
+    const searchInput = document.getElementById('searchInput');
+    const exactCountInput = document.getElementById('exactCountInput');
+    const tableContainer = document.getElementById('tableContainer');
+    const paginationContainer = document.getElementById('pagination');
+
+    async function fetchData() {
+      const searchTerm = searchInput.value.trim();
+      // We do NOT put the count filter in SPARQL anymore, because we need the full distribution 
+      // or we need to handle the logic locally to allow "Exact" filtering easily.
+      // However, to keep performance high, we still fetch all counts.
+      
+      const nameFilter = searchTerm ? `FILTER(CONTAINS(LCASE(?conceptLabel), LCASE("${searchTerm}")))` : '';
+      
+      // Fetch ALL concepts (with their counts) that match the name filter.
+      // We remove the HAVING clause from SPARQL to get all counts, then filter locally.
+      const query = `
+        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+        PREFIX sdh-short: <https://sdhss.org/ontology/shortcuts/>
+        PREFIX meta: <https://sdhss.org/ontology/sources-information-metadata/>
+
+        SELECT ?conceptLabel ?conceptUri (COUNT(DISTINCT ?chunkUri) AS ?mentionCount)
+        WHERE {
+            ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+                <https://sdhss.org/ontology/shortcuts/P9> ?textLabel;
+                <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
+            ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
+            ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
+                     a <https://sdhss.org/ontology/sources-information-metadata/C20>.
+            ${nameFilter}
+        }
+        GROUP BY ?conceptLabel ?conceptUri
+        ORDER BY DESC(?mentionCount) ?conceptLabel
+      `;
+
+      try {
+        const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
+          headers: { 'Accept': 'application/sparql-results+json' }
+        });
+        const data = await response.json();
+        
+        allData = data.results.bindings.map(row => ({
+          name: row.conceptLabel?.value || 'N/A',
+          uri: row.conceptUri?.value || '#',
+          count: parseInt(row.mentionCount?.value || '0', 10)
+        }));
+        
+        applyFilters();
+        
+      } catch (error) {
+        tableContainer.innerHTML = `<div style="color:red">Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+
+    function applyFilters() {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      const exactCountVal = exactCountInput.value.trim();
+      const targetCount = exactCountVal !== '' ? parseInt(exactCountVal, 10) : null;
+
+      filteredData = allData.filter(item => {
+        // Name Filter
+        const matchesName = searchTerm === '' || item.name.toLowerCase().includes(searchTerm);
+        
+        // Exact Count Filter
+        let matchesCount = true;
+        if (targetCount !== null) {
+          matchesCount = (item.count === targetCount);
+        }
+
+        return matchesName && matchesCount;
+      });
+
+      currentPage = 1;
+      renderTable();
+      renderPagination();
+      renderChart();
+    }
+
+    function renderTable() {
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const pageData = filteredData.slice(startIndex, endIndex);
+
+      if (pageData.length === 0) {
+        tableContainer.innerHTML = '<div>No results found.</div>';
+        return;
+      }
+
+      let tableHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Concept Name</th>
+            <th>Mentions</th>
+          </tr>
+        </thead>
+        <tbody>`;
+      
+      pageData.forEach(row => {
+        // Create link to URI
+        const linkHtml = `<a href="./instance-page.html?uri=${row.uri}" target="_blank" class="concept-link">${escapeHtml(row.name)}</a>`;
+        
+        tableHTML += 
+        `<tr>
+          <td>${linkHtml}</td>
+          <td><strong>${row.count}</strong></td>
+         </tr>`;
+      });
+      tableHTML += `</tbody></table>`;
+      tableContainer.innerHTML = tableHTML;
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+      paginationContainer.innerHTML = '';
+
+      if (totalPages <= 1) return;
+
+      const prevButton = document.createElement('button');
+      prevButton.textContent = '← Prev';
+      prevButton.disabled = currentPage === 1;
+      prevButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+          renderPagination();
+        }
+      });
+      paginationContainer.appendChild(prevButton);
+
+      const maxVisible = 5;
+      let start = Math.max(1, currentPage - Math.floor(maxVisible/2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+      for (let i = start; i <= end; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === currentPage) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          currentPage = i;
+          renderTable();
+          renderPagination();
+        });
+        paginationContainer.appendChild(btn);
+      }
+
+      const nextButton = document.createElement('button');
+      nextButton.textContent = 'Next →';
+      nextButton.disabled = currentPage === totalPages;
+      nextButton.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+          renderPagination();
+        }
+      });
+      paginationContainer.appendChild(nextButton);
+    }
+
+    function renderChart() {
+      // Calculate Distribution based on FILTERED data
+      const countFrequency = {};
+      filteredData.forEach(item => {
+        const c = item.count;
+        countFrequency[c] = (countFrequency[c] || 0) + 1;
+      });
+
+      const sortedCounts = Object.keys(countFrequency).map(Number).sort((a, b) => a - b);
+      const labels = sortedCounts;
+      const dataValues = sortedCounts.map(count => countFrequency[count]);
+
+      const ctx = document.getElementById('distributionChart').getContext('2d');
+
+      if (distributionChart) {
+        distributionChart.destroy();
+      }
+
+      distributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Number of Concepts',
+            data: dataValues,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => `Mentions: ${items[0].label}`,
+                label: (context) => `${context.raw} concept(s)`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Number of Mentions (Count)' },
+              ticks: { maxRotation: 45, minRotation: 45 }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Number of Concepts' },
+              ticks: { stepSize: 1 }
+            }
+          }
+        }
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    let debounceTimer;
+    function triggerUpdate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        applyFilters(); // Use local filtering for speed
+      }, 300);
+    }
+
+    searchInput.addEventListener('input', triggerUpdate);
+    exactCountInput.addEventListener('input', triggerUpdate);
+
+    // Initial Load
+    fetchData();
+  </script>
+</body>
+</html>
