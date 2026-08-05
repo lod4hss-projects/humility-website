@@ -6,44 +6,198 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Humility-Chunks</title>
   <link rel="stylesheet" href="./base_style.css">
-
-  <!-- manages the enpoint address in just one same place-->
   <script src="address.js"></script>
 
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      min-width: 200px;
+      flex: 1;
+    }
+
+    .control-group label {
+      font-size: 0.85em;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Layout for Table and potential future sidebar */
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      height: 80vh;
+    }
+
+    .table-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .table-header {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      background: #f8f9fa;
+      border-radius: 8px 8px 0 0;
+    }
+
+    #tableContainer {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid #ddd;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    /* Link styling */
+    a {
+      color: #0056b3;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    a:hover {
+      text-decoration: underline;
+      color: #003d80;
+    }
+
+    .pagination {
+      margin-top: 10px;
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .pagination button {
+      padding: 5px 10px;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 3px;
+    }
+
+    .pagination button.active {
+      background: #0056b3;
+      color: white;
+      border-color: #0056b3;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 
 <body>
-  <div>
-    <h1>Annotated Chunks</h1>
-    <input type="text" id="searchInput" value="Humility">
-    <div id="tableContainer">Loading data...</div>
-    <div class="pagination" id="pagination"></div>
+  <h1>Annotated Chunks</h1>
+  
+  <!-- Controls Section -->
+  <div class="controls">
+    <div class="control-group">
+      <label for="searchInput">Filter Concept Name:</label>
+      <input type="text" id="searchInput" value="" placeholder="Type concept name...">
+    </div>
+    <div class="control-group">
+      <label for="classFilterInput">Filter Concept Class:</label>
+      <input type="text" id="classFilterInput" value="" placeholder="e.g. Virtue, Emotion">
+    </div>
+    <div class="control-group">
+      <label for="chunkInput">Filter Chunk:</label>
+      <input type="text" id="chunkInput" value="" placeholder="Type chunk text...">
+    </div>
+    <div class="control-group">
+      <label for="textLabelInput">Filter Text Label:</label>
+      <input type="text" id="textLabelInput" value="" placeholder="Type text title...">
+    </div>
+  </div>
+
+  <!-- Dashboard Section -->
+  <div class="dashboard">
+    <div class="table-section">
+      <div class="table-header">
+        <h3 style="margin:0;">Chunk List</h3>
+      </div>
+      <div id="tableContainer">Loading data...</div>
+      <div class="pagination" id="pagination"></div>
+    </div>
   </div>
 
   <script>
-
-    // gets endpoint address from one single source
     const endpoint = address;
-    const ITEMS_PER_PAGE = 10;
-    let allData = [];
+    const ITEMS_PER_PAGE = 20;
+    
+    let allData = []; 
+    let filteredData = []; 
     let currentPage = 1;
-    let filteredData = [];
-    let currentSearchTerm = 'Humility';
 
     const searchInput = document.getElementById('searchInput');
+    const classFilterInput = document.getElementById('classFilterInput');
+    const chunkInput = document.getElementById('chunkInput');
+    const textLabelInput = document.getElementById('textLabelInput');
     const tableContainer = document.getElementById('tableContainer');
     const paginationContainer = document.getElementById('pagination');
 
-    function convertEntityURI(uri) {
-      const match = uri.match(/^https:\/\/humility.lod4hss.cloud\/resource\/i(\d+)$/);
-      if (!match) {
-        return null;
-      }
-
-    }
-
-    async function fetchData(searchTerm = '') {
-      const filterClause = searchTerm ? `FILTER(CONTAINS(LCASE(?conceptLabelFilter), LCASE("${searchTerm}")))` : '';
+    async function fetchData() {
+      // We fetch a broad dataset based on the main concept search to keep SPARQL simple,
+      // then apply specific Class and Text Label filters locally in JS for speed and flexibility.
+      const searchTerm = searchInput.value.trim();
+      const nameFilter = searchTerm ? `FILTER(CONTAINS(LCASE(?conceptLabelFilter), LCASE("${searchTerm}")))` : '';
+      
       const query = `
         prefix owl: <http://www.w3.org/2002/07/owl#>
         prefix xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -66,19 +220,16 @@
                   ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
                   ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
                            a <https://sdhss.org/ontology/sources-information-metadata/C20>.
-                           }
+                  }
               optional {
                   ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptClassUri. 
                   ?conceptClassUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptClassLabel;
                            a <https://sdhss.org/ontology/sources-information-metadata/C21>.}
-          ${filterClause}
-
+          ${nameFilter}
           }
           group by ?textUri ?textLabel ?chunkUri 
           order by ?textUri ?chunkUri 
-          limit 100         
-         
-    
+          limit 500
       `;
 
       try {
@@ -86,8 +237,8 @@
           headers: { 'Accept': 'application/sparql-results+json' }
         });
         const data = await response.json();
+        
         allData = data.results.bindings.map(row => ({
-          // uri: row.conceptUri?.value || '#',
           textLabel: row.textLabel?.value || 'N/A',
           name: row.concepts?.value || 'N/A',
           conceptClasses: row.conceptClasses?.value || 'N/A',
@@ -95,12 +246,40 @@
           chunkUri: row.chunkUri?.value || 'N/A',
           textUri: row.textUri?.value || 'N/A'
         }));
-        filteredData = [...allData];
-        renderTable();
-        renderPagination();
+        
+        applyFilters();
+        
       } catch (error) {
-        tableContainer.innerHTML = `<div>No results or error: ${error.message}</div>`;
+        tableContainer.innerHTML = `<div style="color:red">Error: ${error.message}</div>`;
+        console.error(error);
       }
+    }
+
+    function applyFilters() {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      const classTerm = classFilterInput.value.trim().toLowerCase();
+      const chunkTerm = chunkInput.value.trim().toLowerCase();
+      const textTerm = textLabelInput.value.trim().toLowerCase();
+
+      filteredData = allData.filter(item => {
+        // Concept Name Filter
+        const matchesName = searchTerm === '' || item.name.toLowerCase().includes(searchTerm);
+        
+        // Concept Class Filter
+        const matchesClass = classTerm === '' || (item.conceptClasses && item.conceptClasses.toLowerCase().includes(classTerm));
+      
+        // Chunk Filter
+        const matchesChunk = chunkTerm === '' || (item.chunk && item.chunk.toLowerCase().includes(chunkTerm));
+
+        // Text Label Filter
+        const matchesText = textTerm === '' || (item.textLabel && item.textLabel.toLowerCase().includes(textTerm));
+
+        return matchesName && matchesClass && matchesChunk && matchesText;
+      });
+
+      currentPage = 1;
+      renderTable();
+      renderPagination();
     }
 
     function renderTable() {
@@ -113,16 +292,29 @@
         return;
       }
 
-
-
-      let tableHTML = `<br/>
-      <table><thead><tr><th>Concepts</th><th>Classes</th><th>Chunk</th><th>Text</th></tr></thead><tbody>`;
+      let tableHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Concepts</th>
+            <th>Classes</th>
+            <th>Chunk</th>
+            <th>Text</th>
+          </tr>
+        </thead>
+        <tbody>`;
+      
       pageData.forEach(row => {
+        const chunkLink = `<a href="./instance-page.html?uri=${encodeURIComponent(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a>`;
+        const textLink = `<a href="./text-page.html?uri=${encodeURIComponent(row.textUri)}" target="_blank">${escapeHtml(row.textLabel)}</a>`;
+        
         tableHTML += 
-        `<tr><td>${escapeHtml(row.name)}</td>
-         <td>${escapeHtml(row.conceptClasses)}</td>
-          <td><a href="./instance-page.html?uri=${escapeHtml(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a></td>
-          <td><a href="./text-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">${row.textLabel}</a></td></tr>`;
+        `<tr>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${escapeHtml(row.conceptClasses)}</td>
+          <td>${chunkLink}</td>
+          <td>${textLink}</td>
+         </tr>`;
       });
       tableHTML += `</tbody></table>`;
       tableContainer.innerHTML = tableHTML;
@@ -135,7 +327,7 @@
       if (totalPages <= 1) return;
 
       const prevButton = document.createElement('button');
-      prevButton.textContent = '← Previous';
+      prevButton.textContent = '← Prev';
       prevButton.disabled = currentPage === 1;
       prevButton.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -146,16 +338,21 @@
       });
       paginationContainer.appendChild(prevButton);
 
-      for (let i = 1; i <= totalPages; i++) {
-        const pageButton = document.createElement('button');
-        pageButton.textContent = i;
-        if (i === currentPage) pageButton.classList.add('active');
-        pageButton.addEventListener('click', () => {
+      const maxVisible = 5;
+      let start = Math.max(1, currentPage - Math.floor(maxVisible/2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+      for (let i = start; i <= end; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === currentPage) btn.classList.add('active');
+        btn.addEventListener('click', () => {
           currentPage = i;
           renderTable();
           renderPagination();
         });
-        paginationContainer.appendChild(pageButton);
+        paginationContainer.appendChild(btn);
       }
 
       const nextButton = document.createElement('button');
@@ -172,19 +369,27 @@
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    searchInput.addEventListener('input', () => {
-      currentSearchTerm = searchInput.value.trim();
-      fetchData(currentSearchTerm);
-    });
+    let debounceTimer;
+    function triggerUpdate() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        applyFilters();
+      }, 300);
+    }
 
-    // Trigger initial load with default value
-    fetchData(currentSearchTerm);
+    searchInput.addEventListener('input', triggerUpdate);
+    classFilterInput.addEventListener('input', triggerUpdate);
+    chunkInput.addEventListener('input', triggerUpdate);
+    textLabelInput.addEventListener('input', triggerUpdate);
+
+    // Initial Load
+    fetchData();
   </script>
 </body>
-
 </html>

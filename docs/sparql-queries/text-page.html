@@ -1,125 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <title>Humility-Text</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Humility-Text Details</title>
   <link rel="stylesheet" href="base_style.css">
-
-  <!-- manages the enpoint address in just one same place-->
   <script src="address.js"></script>
 
   <style>
-    td {
-      vertical-align: top;
-      padding: 15px;
-      background: #f1f2f3;
+    /* --- Clean Layout CSS --- */
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background-color: #fff;
+      color: #333;
     }
 
-    table {
-      border-collapse: separate;
-      /* Enables spacing */
-      border-spacing: 15px 0;
-      /* Horizontal spacing between columns, vertical between rows */
-       table-layout: fixed; /* Forces strict adherence to width percentages */
+    h1, h2, h3 {
+      color: #333;
+    }
+
+    /* Header Section Styling */
+    #entity-header {
+      margin-bottom: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    #entity-header table {
       width: 100%;
-
-    }
- 
-    span {
-        display: inline-block; 
-        vertical-align: middle; 
-        margin-right: 10px;
-        line-height: 1; /* Crucial: Prevents extra vertical space from text */
+      margin-top: 15px;
+      border-collapse: collapse;
+      background: white;
     }
 
-    /* CRITICAL: Reset button defaults that break alignment */
-    #button-div button {
-        vertical-align: middle;
-        margin: 0;
-        padding: 4px 8px; /* Explicit padding */
-        line-height: 1;
-        display: inline-block;
+    #entity-header td {
+      padding: 15px;
+      border: 1px solid #eee;
+      vertical-align: top;
+      width: 50%;
+      font-size: 1.1em;
+      line-height: 1.5;
     }
 
+    #entity-header th {
+      background: #e9ecef;
+      padding: 10px;
+      text-align: left;
+      font-weight: bold;
+    }
 
-        /* Ensure the link also aligns */
-    #button-div + span a {
-        vertical-align: middle;
-        text-decoration: none;
-}
-    #tables-container {
+    /* Dashboard Layout for Table */
+    .dashboard {
       display: flex;
+      flex-direction: column;
       gap: 20px;
-      flex-wrap: wrap;
+      height: 70vh; /* Fixed height for scrollable table */
     }
 
-
-
-
-    #outoing-section,
-    #incoming-section {
+    .table-section {
       flex: 1;
-      min-width: 400px;
-      padding: 1%;
-      max-width: fit-content;
-      background: #e5edef;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .table-header {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      background: #f8f9fa;
+      border-radius: 8px 8px 0 0;
+    }
+
+    #table-chunks {
+      flex: 1;
+      overflow-y: auto; /* Scrollable content */
+      padding: 0;
+    }
+
+    /* Table Styling */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+
+    table.data-table th, 
+    table.data-table td {
+      text-align: left;
+      padding: 10px 15px;
+      border-bottom: 1px solid #ddd;
+      vertical-align: top;
+    }
+
+    table.data-table th {
+      background-color: #f8f9fa;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-weight: bold;
+      color: #333;
+    }
+
+    table.data-table tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    table.data-table td:first-child {
+      width: 50%;
+      font-family: serif; /* Better for reading text chunks */
+    }
+
+    /* Links */
+    a {
+      color: #0056b3;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    a:hover {
+      text-decoration: underline;
+      color: #003d80;
+    }
+
+    /* Pagination */
+    .pagination {
+      margin-top: 10px;
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      padding: 10px;
+      background: #fff;
+      border-top: 1px solid #eee;
+    }
+
+    .pagination button {
+      padding: 5px 12px;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+
+    .pagination button:hover {
+      background: #e9ecef;
+    }
+
+    .pagination button.active {
+      background: #0056b3;
+      color: white;
+      border-color: #0056b3;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Bottom Navigation */
+    .nav-links {
+      margin-top: 20px;
+      padding: 15px;
+      text-align: center;
+      background: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .nav-links span {
+      margin: 0 15px;
+      display: inline-block;
     }
   </style>
 </head>
 
 <body>
-  <div class="entity-header" id="entity-header"></div>
-  
-  
 
-  <div id="tables-container">
-    <div id="chunks-section"> 
-      <div id="table-chunks"></div>
+  <!-- Entity Header Section -->
+  <div id="entity-header">Loading entity information...</div>
+  
+  <!-- Dashboard Table Section -->
+  <div class="dashboard">
+    <div class="table-section">
+      <div class="table-header">
+        <h3 style="margin:0;">Associated Chunks</h3>
+      </div>
+      <div id="table-chunks">Loading chunks...</div>
       <div class="pagination" id="pagination-chunks"></div>
     </div>
+  </div>
 
-
-  <div class="pagination" id="pagination"></div>
+  <!-- Bottom Navigation Links -->
+  <div class="nav-links" id="final-links">
+    <!-- Links injected via JS -->
+  </div>
 
   <script>
+    // --- Configuration & State ---
     const urlParams = new URLSearchParams(window.location.search);
     const uri = urlParams.get('uri');
-    const decodedURI = decodeURIComponent(uri);
-
     const endpoint = address;
-    const dataGraph = ' GRAPH <https://humility.lod4hss.cloud/resource/>'
-    const ontologyGraph = ''
-    const originatesFromGraph = 'GRAPH <https://humility.lod4hss.cloud/resource/originatesFrom>'
-    const baseFieldsGraph = 'GRAPH <https://humility.lod4hss.cloud/resource/baseFields>'
-
-
-
+    
     if (!uri) {
-      document.body.innerHTML = '<p>Error: Missing ?uri parameter.</p>';
+      document.body.innerHTML = '<p style="color:red; padding:20px;">Error: Missing ?uri parameter.</p>';
       throw new Error('Missing ?uri parameter');
     }
 
-    const pageSize = 10;
-    let currentPage = 1;
     let entityName = 'Unknown Entity';
-    let entityClass = 'Unknown Class';
-    let entityBirthYear = ''
+    let passageText = 'N/A';
+    let translation = 'N/A';
+    let textUriGlobal = '';
+    let wisskiPageURL = '';
 
-    // this function converts the URI to the elites suisses website URLs
-    // according to the class: p, g etc.
-    function convertEntityURI(uri) {
-      if (typeof uri !== 'string') return null;
+    // Data State
+    let allChunksData = []; 
+    const ITEMS_PER_PAGE = 20;
+    let currentPageChunks = 1;
 
-      // Pattern 1: pXXXXX → /p/XXXXX
-      const pMatch = uri.match(/^https:\/\/humility.lod4hss.cloud\/resource\/([0-9a-f]+)$/)
+    // DOM Elements
+    const tableContainer = document.getElementById('table-chunks');
+    const paginationContainer = document.getElementById('pagination-chunks');
+    const finalLinksDiv = document.getElementById('final-links');
 
-      // Unknown pattern
-      console.warn('URI does not match known patterns:', uri);
-      return null;
-    }
-
-    // this functions gets the data to write the entity header
-    // and builds the correspondent HTML code
+    // --- 1. Fetch Entity Header Info ---
     async function fetchEntityInfo() {
       const query = `
       SELECT  ?expressionLabel ?textUri ?text ?translationUri ?translation ?wisskiPageURL
@@ -128,12 +237,9 @@
             ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
                 <http://www.cidoc-crm.org/cidoc-crm/P190> ?text;
                 <http://www.w3.org/2002/07/owl#sameAs> ?wisskiPageURL.
-                
-            ## filter that excludes translations and other linguistic objects
             ?expression <http://www.cidoc-crm.org/cidoc-crm/P165> ?textUri;
                 a <http://iflastandards.info/ns/lrm/lrmoo/F2>;
                 <https://sdhss.org/ontology/shortcuts/P9> ?expressionLabel.
-                
             OPTIONAL{
                  <${uri}> <http://www.cidoc-crm.org/cidoc-crm/P73> ?translationUri.
                 ?translationUri    <http://www.cidoc-crm.org/cidoc-crm/P190> ?translation.
@@ -142,97 +248,60 @@
         LIMIT 1
       `;
 
-      const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
-        headers: { 'Accept': 'application/sparql-results+json' }
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Entity info error: ${response.status} ${response.statusText}\n${text}`);
-      }
-
-      const data = await response.json();
-      const bindings = data.results.bindings;
-
-      if (bindings.length > 0) {
-        entityName = bindings[0].expressionLabel?.value || entityName;
-        passageText = bindings[0].text?.value || passageText;
-        textUri = bindings[0].textUri?.value || textUri;
-        wisskiPageURL = bindings[0].wisskiPageURL?.value || textUri;
-        translationUri = bindings[0].translationUri?.value || translationUri;
-        translation = bindings[0].translation?.value || translation;
-      }
-
-      // prepare the Elites Suisses website URL 
-      const publicUrl = convertEntityURI(uri);
-
-      // add the entity header 
-      // it also adds a button to copy the URL and a link to the Elites Suisses website
-      document.getElementById('entity-header').innerHTML = `
-        <h3>${entityName}</h3>
-        <div id='button-div'></div>
-        <table >
-        <thead>
-        <tr>
-          <!-- Hidden Header Row -->
-          <th style="width: 50%; visibility: hidden; height: 0; padding: 0; border: none;">Original Text</th>
-          <th style="width: 50%; visibility: hidden; height: 0; padding: 0; border: none;">Translation</th>
-        </tr>
-      </thead>
-      <tbody>
-         <tr style='font-size:larger' >
-              <td>${passageText}</td>
-              <td>${translation}</td>
-          </tr>
-      </tbody>
-        </table>
-        <br/>
-      `;
-      if (wisskiPageURL) {
-        document.getElementById('button-div').innerHTML += `
-           &nbsp; &nbsp; &nbsp; <a href="${wisskiPageURL}" target="_blank">View on WissKI</a></p>
-        `;
-      }
-
-      
-      
-    }
-
-    function copyURI() {
-      if (!uri) {
-        alert('No URI to copy.');
-        return;
-      }
-
-      let decodedURI;
       try {
-        decodedURI = decodeURIComponent(uri);
-      } catch (e) {
-        alert('Invalid URI encoding.');
-        return;
-      }
-
-      navigator.clipboard.writeText(decodedURI)
-        .then(() => {
-          const status = document.getElementById('copy-status');
-          status.style.display = 'inline';
-          setTimeout(() => {
-            status.style.display = 'none';
-          }, 2000);
-        })
-        .catch(err => {
-          alert('Failed to copy URI: ' + err.message);
+        const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
+          headers: { 'Accept': 'application/sparql-results+json' }
         });
+        if (!response.ok) throw new Error(`Entity info error: ${response.status}`);
+        
+        const data = await response.json();
+        const bindings = data.results.bindings;
+
+        if (bindings.length > 0) {
+          entityName = bindings[0].expressionLabel?.value || entityName;
+          passageText = bindings[0].text?.value || passageText;
+          textUriGlobal = bindings[0].textUri?.value || uri;
+          wisskiPageURL = bindings[0].wisskiPageURL?.value || '';
+          translation = bindings[0].translation?.value || 'No translation available';
+        }
+
+        // Render Header
+        let headerHTML = `
+          <h2>${entityName}</h2>
+          <div style="margin-bottom:10px;">
+            ${wisskiPageURL ? `<a href="${wisskiPageURL}" target="_blank" style="font-weight:bold;">View on WissKI</a>` : ''}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Original Text</th>
+                <th>Translation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${passageText}</td>
+                <td>${translation}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+        document.getElementById('entity-header').innerHTML = headerHTML;
+
+        // Render Bottom Links
+        finalLinksDiv.innerHTML = `
+          <span><a href="./chunk-table.html">← Back to chunks' list</a></span>
+          <span><a href="./instance-page.html?uri=${encodeURIComponent(textUriGlobal)}" target="_blank">View Text Triples</a></span>
+        `;
+
+      } catch (err) {
+        document.getElementById('entity-header').innerHTML = `<p style="color:red">Error loading header: ${err.message}</p>`;
+      }
     }
 
-
-
-    // --- Chunks and concepts ---
-    // Query the SPARQL endpoint for text chunks linked to the current entity and their concepts.
-    async function fetchChunksAndConcepts(page) {
-      const offset = (page - 1) * pageSize;
-      
-      // 1. Construct the Query String
+    // --- 2. Fetch Chunks Data ---
+    async function fetchChunksData() {
+      // Fetch up to 500 items to allow pagination without complex SPARQL offsets
       const query = `
         SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
               (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
@@ -259,177 +328,119 @@
           }
         }
         GROUP BY ?textUri ?chunkUri
-        ORDER BY ?textUri ?chunkUri
-        LIMIT ${pageSize}
-        OFFSET ${offset}
+        ORDER BY ?chunkUri
+        LIMIT 500
       `;
 
-      //console.log(query);
-
-
-      const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
+      try {
+        const response = await fetch(endpoint + '?query=' + encodeURIComponent(query), {
           headers: { 'Accept': 'application/sparql-results+json' }
         });
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(`SPARQL error: ${response.status} ${response.statusText}\n${text}`);
-        }
+        if (!response.ok) throw new Error(`SPARQL error: ${response.status}`);
 
         const data = await response.json();
-
-        if (!data.results || !data.results.bindings) {
-          throw new Error('Invalid SPARQL JSON response');
-        }
-
-      // console.log(data);
-
-
-
-      // Process Data
-      
-      return data.results.bindings.map(binding => ({
-        textUri: binding.textUri?.value || '',
-        concepts: binding.concepts?.value || 'N/A',
-        conceptClasses: binding.conceptClasses?.value || 'N/A',
-        chunk: binding.chunkText?.value || 'N/A',
-        chunkUri: binding.chunkUri?.value || ''
+        
+        allChunksData = data.results.bindings.map(binding => ({
+          textUri: binding.textUri?.value || '',
+          concepts: binding.concepts?.value || '',
+          conceptClasses: binding.conceptClasses?.value || '',
+          chunk: binding.chunkText?.value || '',
+          chunkUri: binding.chunkUri?.value || ''
         }));
 
-       
+        renderTable();
+        renderPagination();
 
-}
-
-    // new 
-    // Render the chunk-and-concepts table into the page.
-function renderChunksTable(rows) {
-  const container = document.getElementById('table-chunks');
-  
-  if (!rows || rows.length === 0) {
-    container.innerHTML = '<p>No chunks found.</p>';
-    return;
-  }
-
-  let html = `
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 50%;">Chunk</th>
-          <th style="width: 25%;">Concepts</th>
-          <th style="width: 25%;"">Concept Classes</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  rows.forEach(row => {
-    let chunkDisplay = row.chunk;
-
-    // If chunkUri is a valid URL, make the chunk text clickable
-    if (row.chunkUri && row.chunkUri.startsWith('http')) {
-      let href = row.chunkUri;
-      
-      // If it's an internal resource, link to instance-page.html
-      if (row.chunkUri.startsWith('https://humility.lod4hss.cloud/resource/')) {
-        href = `./instance-page.html?uri=${encodeURIComponent(row.chunkUri)}`;
-      }
-
-      chunkDisplay = `<a href="${href}" target="_blank">${row.chunk}</a>`;
-    }
-
-    // Handle cases where concepts might be missing
-    const conceptsDisplay = row.concepts || 'N/A';
-    const conceptClassesDisplay = row.conceptClasses || 'N/A';
-
-    html += `
-      <tr>
-        <td>${chunkDisplay}</td>
-        <td>${conceptsDisplay}</td>
-        <td>${conceptClassesDisplay}</td>
-      </tr>
-    `;
-  });
-
-  html += '</tbody></table><div id="final-links"></div>';
-
-
-  container.innerHTML = html;
-
-  const finalLinksDiv = document.getElementById('final-links');
-
-
-
-    // 4. Populate Final Links
-  if (finalLinksDiv) {
-    finalLinksDiv.innerHTML = `
-      <p style="margin-top: 10px;">
-        <span style="display: inline-block; margin-right: 15px;">
-            <a href="./chunk-table.html">Back to chunks' list</a>
-        </span>
-        <span style="display: inline-block;">
-            <a href="./instance-page.html?uri=${textUri}" target="_blank">Text Triples</a>
-        </span>
-      </p>  
-    `;
-  } else {
-    console.error("Could not find 'final-links' div after rendering header.");
-  }      
-}
-
-
-
-    // --- Separate Pagination State ---
-    let currentPageChunks = 1;
-
-
-
-
-    // --- Render Pagination for Outgoing ---
-    function renderPaginationChunk(hasMore) {
-      const pagination = document.getElementById('pagination-chunks');
-
-      if (!pagination) return; // Safety check
-
-      // Clear previous content
-      pagination.innerHTML = '';
-      
-      let html = '';
-
-      if (currentPageChunks > 1) {
-        html += '<button onclick="goToPageChunks(1)">First</button>';
-        html += `<button onclick="goToPageChunks(${currentPageChunks - 1})">Previous</button>`;
-      }
-
-      if (hasMore) {
-        html += `<button onclick="goToPageChunks(${currentPageChunks + 1})">Next</button>`;
-      }
-
-      pagination.innerHTML = html;
-    }
-
-
-
-      // --- Go to Page for Chunks ---
-    async function goToPageChunks(page) {
-      currentPageChunks = page;
-      try {
-        const rows = await fetchChunksAndConcepts(page); 
-        renderChunksTable(rows, 'chunks-table');
-        renderPaginationOutgoing(rows.length === pageSize);
       } catch (err) {
-        document.getElementById('chunks-table').innerHTML =
-          `<p style="color:red;">Error: ${err.message}</p>`;
-        document.getElementById('pagination-chunks').innerHTML = '';
+        tableContainer.innerHTML = `<p style="color:red; padding:20px;">Error loading chunks: ${err.message}</p>`;
       }
     }
 
+    // --- 3. Render Table ---
+    function renderTable() {
+      const startIndex = (currentPageChunks - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const pageData = allChunksData.slice(startIndex, endIndex);
+
+      if (pageData.length === 0) {
+        tableContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">No chunks found.</div>';
+        return;
+      }
+
+      let html = `<table class="data-table">
+        <thead>
+          <tr>
+            <th>Chunk Content</th>
+            <th>Concepts</th>
+            <th>Concept Classes</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      pageData.forEach(row => {
+        let chunkDisplay = row.chunk;
+        if (row.chunkUri && row.chunkUri.startsWith('http')) {
+          const href = row.chunkUri.startsWith('https://humility.lod4hss.cloud/resource/') 
+            ? `./instance-page.html?uri=${encodeURIComponent(row.chunkUri)}` 
+            : row.chunkUri;
+          chunkDisplay = `<a href="${href}" target="_blank">${row.chunk}</a>`;
+        }
+
+        html += `
+          <tr>
+            <td>${chunkDisplay}</td>
+            <td>${row.concepts || '<span style="color:#999">-</span>'}</td>
+            <td>${row.conceptClasses || '<span style="color:#999">-</span>'}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      tableContainer.innerHTML = html;
+    }
+
+    // --- 4. Render Pagination ---
+    function renderPagination() {
+      const totalPages = Math.ceil(allChunksData.length / ITEMS_PER_PAGE);
+      paginationContainer.innerHTML = '';
+
+      if (totalPages <= 1) return;
+
+      // Prev Button
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = '← Prev';
+      prevBtn.disabled = currentPageChunks === 1;
+      prevBtn.onclick = () => { currentPageChunks--; renderTable(); renderPagination(); };
+      paginationContainer.appendChild(prevBtn);
+
+      // Page Numbers
+      const maxVisible = 5;
+      let start = Math.max(1, currentPageChunks - Math.floor(maxVisible/2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+      for (let i = start; i <= end; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === currentPageChunks) btn.classList.add('active');
+        btn.onclick = () => { currentPageChunks = i; renderTable(); renderPagination(); };
+        paginationContainer.appendChild(btn);
+      }
+
+      // Next Button
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next →';
+      nextBtn.disabled = currentPageChunks === totalPages;
+      nextBtn.onclick = () => { currentPageChunks++; renderTable(); renderPagination(); };
+      paginationContainer.appendChild(nextBtn);
+    }
 
     // --- Initial Load ---
     (async () => {
       await fetchEntityInfo();
-      goToPageChunks(1)
+      await fetchChunksData();
     })();
 
   </script>
 </body>
-
 </html>
