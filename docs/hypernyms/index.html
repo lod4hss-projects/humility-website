@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.12.1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <script src="https://d3js.org/d3.v7.js"></script>
+  <title>index</title>
+  <style>
+  #tree {
+    overflow: scroll;
+  }
+  #td-tree {
+    width: 70%;
+    max-width: 100px;
+    height: 900px;
+  }
+  #tree {
+    height: 900px;
+  }
+  h3 {
+    text-align: center;
+  }
+  p {
+    margin: 0;
+    padding: 5px;
+  }
+  #ideas {
+    vertical-align: top;
+    overflow: scroll;
+    height: 900px;
+  }
+  td {
+    border: 1px solid black;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 0;
+  }
+  body, div {
+    margin: 0;
+    padding: 0;
+  }
+  th {
+    margin: 0;
+    padding: 5px;
+    font-weight: normal;
+  }
+  </style>
+</head>
+<body>
+
+<table width="100%">
+  <tr>
+    <th>Hypernym Tree</td>
+    <th>Chunks</td>
+  </tr>
+  <tr>
+    <td id="td-tree" width="70%"><div id="tree"></div></td>
+    <td id="td-ideas"><div id="ideas"></div></td>
+  </tr>
+</table>
+
+<script type="module" src="hypernyms-tree.js"></script>
+
+</body>
+</html>
