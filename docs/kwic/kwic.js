@@ -98,7 +98,7 @@ WITH w AS (
     JOIN lemma ON lemma.id = word.lemma
   WHERE (? = '' OR lemma.pos = ?)
     AND (? = '' OR word.dep = ?)
-    AND (? = '' OR word.lemma like ?)
+    AND (? = '' OR lemma.lemma like '%' + ? + '%')
     AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
 )
 SELECT
