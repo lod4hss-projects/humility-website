@@ -1,0 +1,56 @@
+html {
+  color: #1a1a1a;
+  color: light-dark(#1a1a1a, #fdfdfd);
+  background-color: #fdfdfd;
+  background-color: light-dark(#fdfdfd, #1a1a1a);
+  color-scheme: light dark;
+}
+body {
+  margin: 0;
+  padding: 0;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+@media (max-width: 600px) {
+  body {
+    font-size: 0.9em;
+    padding: 12px;
+  }
+  h1 {
+    font-size: 1.8em;
+  }
+}
+div {
+  margin: 1em;
+}
+label {
+  margin: 0.4em;
+}
+#submit {
+  border: 1px solid blue;
+  padding: 5px;
+  margin: 1em;
+  text-decoration: underline;
+  cursor: pointer;
+  color: blue;
+}
+#submit:hover {
+  background-color: blue;
+  color: white;
+}
+table#kwic {
+  border-collapse: collapse;
+  border: 1px solid black;
+}
+table#kwic .ctx_left {
+  text-align: right;
+}
+table#kwic .keyword {
+  text-align: center;
+  font-weight: bold;
+}
+table#kwic tr {
+  border: 1px solid black;
+}
