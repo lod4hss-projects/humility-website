@@ -1,51 +1,31 @@
-/* create tables from CSV files */
-console.time("csv")
-for (let i of ["lemma", "word", "chunk"]) {
-  await alasql.promise(
-    `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
-    [`./${i}.csv`]
-  )
-}
-console.timeEnd("csv")
+const ROOT = "https://humility.lod4hss.org"
+const BASE_URI = `${ROOT}/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F`
 
-/* create indexes */
-console.time("index")
-const indexes = {
-  word: ["string", "lemma"],
-  lemma: ["id", "pos"],
-  chunk: ["id"],
-}
-Object.entries(indexes).forEach(([tb, cols]) => {
-  cols.forEach((i) => alasql(`create index index_${tb}_${i} on ${tb} (${i})`))
-})
-console.timeEnd("index")
+const kwic = document.getElementById("kwic")
+const queryDesc = document.getElementById("query")
+const tbody = document.getElementById("kwic-tbody")
 
-/* create a <select> with an <option> for each value and an ID */
-function createSelect(values, id) {
-  const select = document.createElement("select")
-  select.id = id
-  values.forEach((i) => {
-    const option = document.createElement("option")
-    option.value = i
-    option.text = i
-    select.append(option)
-  })
-  return select
+/* helper function to create an element and set its attributes.
+ * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
+ * */
+function createElement(tag, attrs, callback) {
+  const elem = document.createElement(tag)
+  if (attrs)
+    Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))
+  if (callback) callback(elem)
+  return elem
 }
 
-/* create a <select> and an associated <label> */
-function createSelectWithLabel(labelText, values, id) {
-  const div = document.createElement("div")
-  div.classList.add("select")
-  const label = document.createElement("label")
-  label.textContent = `${labelText}: `
-  div.append(label)
-
-  div.append(createSelect(values, id))
-  return div
+/* populate a <select> element with values as <option> */
+function populateSelect(select, values) {
+  for (let i of values)
+    select.append(createElement("option", { value: i, text: i }))
 }
 
-/* check that identifier are safe */
+/* check that identifier are safe.
+ * this is not really important since there's no actual database.
+ * but let's stick to safe practices anyway!
+ * */
 const re_identifier = /^[A-Za-z_]+$/
 function checkIdentifier(identifier) {
   if (!re_identifier.exec(identifier)) {
@@ -53,45 +33,32 @@ function checkIdentifier(identifier) {
   }
 }
 
-/* create a <select> and populate it from a query */
-function createSelectFromQuery(form, label, table, column, id) {
-  try {
-    checkIdentifier(table)
-    checkIdentifier(column)
-    const query = `SELECT DISTINCT ${column} from ${table} ORDER BY ${column}`
-    const values = alasql(query).map((i) => i[column])
-    values.unshift("")
-    form.append(createSelectWithLabel(label, values, id))
-  } catch (e) {
-    console.error(e)
-  }
+/* SELECT DISTINCT from `table`.`column`, plus an empty string at the start. */
+function selectDistinctEmpty(table, column) {
+  checkIdentifier(table)
+  checkIdentifier(column)
+  const query = `SELECT DISTINCT ${column} from ${table} ORDER BY ${column}`
+  const values = alasql(query).map((i) => i[column])
+  values.unshift("")
+  return values
 }
 
-/* create an <input> with a label and an ID */
-function createInput(form, labelText, id) {
-  const div = document.createElement("div")
-  const label = document.createElement("label")
-  label.textContent = `${labelText}: `
-  div.append(label)
-  const input = document.createElement("input")
-  input.id = id
-  div.append(input)
-  form.append(div)
-}
-
-function runQuery() {
-  const values = {}
+/* get the query parameters from the user interface. */
+function getQueryParams() {
   const params = []
   for (let i of ["pos", "dep", "lemma", "hypernym"]) {
-    const value = document.getElementById(i).value
+    const value = (document.getElementById(i).value || "").trim()
     params.push(value)
     params.push(value)
   }
-  const order_by = document.getElementById("order-by").value
-  checkIdentifier(order_by)
-  console.log(params)
-  console.time("query")
-  const result = alasql(
+  return params
+}
+
+/* run the select KWIC query using user-defined parameters. */
+function runQuery() {
+  const params = getQueryParams()
+  const orderBy = document.getElementById("order-by").value
+  return alasql(
     `
 WITH w AS (
   SELECT DISTINCT
@@ -102,64 +69,125 @@ WITH w AS (
     JOIN lemma ON lemma.id = word.lemma
   WHERE (? = '' OR lemma.pos = ?)
     AND (? = '' OR word.dep = ?)
-    AND (? = '' OR lemma.lemma like '%' + ? + '%')
+    AND (? = '' OR lemma.lemma LIKE '%' + ? + '%')
     AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
 )
 SELECT
+  chunk.excerpt_uri,
   substring(chunk.val, 1, w.idx - 1) AS ctx_left,
   substring(chunk.val, w.idx, w.len) AS keyword,
   substring(chunk.val, w.idx + w.len) AS ctx_right
   FROM w
   JOIN chunk ON chunk.id = w.chunk
-  ORDER BY ${order_by}, keyword
+  ORDER BY ${orderBy}, keyword, ctx_left, ctx_right
 `,
     params
   )
+}
+
+/* update the KWIC table. */
+function updateKWIC() {
+  console.time("query")
+  const result = runQuery()
   console.timeEnd("query")
-  const tb = document.getElementById("kwic")
-  tb.innerHTML = ""
+  console.time("update")
+  tbody.innerHTML = ""
   result.forEach((i) => {
-    const tr = document.createElement("tr")
+    const tr = createElement("tr")
     for (let j of ["ctx_left", "keyword", "ctx_right"]) {
-      const td = document.createElement("td")
-      td.classList = [j]
-      td.textContent = i[j]
+      const td = createElement("td", { className: j })
+      td.append(
+        createElement("a", {
+          textContent: i[j],
+          href: `${BASE_URI}${i.excerpt_uri}`,
+        })
+      )
       tr.append(td)
     }
-    tb.append(tr)
+    tbody.append(tr)
   })
+  console.timeEnd("update")
 }
+
+/****** Describe the components of the interface. ******/
+
+const ui = [
+  {
+    label: "Part Of Speech",
+    tag: "select",
+    attrs: { id: "pos" },
+    callback: (i) => populateSelect(i, selectDistinctEmpty("lemma", "pos")),
+  },
+  {
+    label: "Dependency Label",
+    tag: "select",
+    attrs: { id: "dep" },
+    callback: (i) => populateSelect(i, selectDistinctEmpty("word", "dep")),
+  },
+  { label: "Hypernym", tag: "input", attrs: { id: "hypernym" } },
+  { label: "Lemma", tag: "input", attrs: { id: "lemma" } },
+  {
+    label: "Order By",
+    tag: "select",
+    attrs: { id: "order-by" },
+    callback: (i) => populateSelect(i, ["keyword", "ctx_left", "ctx_right"]),
+  },
+  {
+    label: "Aligned",
+    tag: "input",
+    attrs: {
+      id: "aligned",
+      type: "checkbox",
+      checked: true,
+      onclick: (_) => {
+        const className = "tb-inline"
+        kwic.className = kwic.className == className ? "" : className
+      },
+    },
+  },
+  {
+    tag: "span",
+    attrs: { id: "submit", textContent: "submit", onclick: updateKWIC },
+  },
+  // TODO: add filter idea/text
+  // TODO: add filter with work metadata, such as orig_language, year, ...
+]
+
+/****** Load the data and build the interface ******/
+
+/* create tables from CSV files.
+ * this is the slowest part of the module. but we cannot really change this.
+ * however, we only load data once, so it's fine for now.
+ * */
+console.time("csv")
+for (let i of ["lemma", "word", "chunk"]) {
+  await alasql.promise(
+    `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
+    [`./${i}.csv`]
+  )
+}
+console.timeEnd("csv")
+
+/* create indexes.
+ * i don't know if it's really more efficient, but it's quick.
+ * */
+console.time("index")
+const indexes = {
+  word: ["string", "lemma"],
+  lemma: ["id", "pos"],
+  chunk: ["id"],
+}
+Object.entries(indexes).forEach(([t, cols]) => {
+  cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
+})
+console.timeEnd("index")
 
 /* create the query user interface */
-function createUIQuery() {
-  console.time("uiquery")
-  const form = document.createElement("div")
-  form.id = "form"
-  try {
-    createSelectFromQuery(form, "part-of-speech", "lemma", "pos", "pos")
-    createSelectFromQuery(form, "dependency label", "word", "dep", "dep")
-  } catch (e) {
-    console.error(e)
-    return
-  }
-  createInput(form, "lemma", "lemma")
-  createInput(form, "hypernym", "hypernym")
-  form.append(
-    createSelectWithLabel(
-      "order by",
-      ["keyword", "ctx_left", "ctx_right"],
-      "order-by"
-    )
-  )
-  const buttonDiv = document.createElement("div")
-  const button = document.createElement("span")
-  button.classList.add("submit")
-  button.id = "submit"
-  button.textContent = "submit"
-  button.onclick = runQuery
-  form.append(button)
-  document.getElementById("query").append(form)
-  console.timeEnd("uiquery")
+console.time("create-ui")
+for (let i of ui) {
+  const p = createElement("p")
+  if (i.label) p.append(createElement("label", { textContent: `${i.label}: ` }))
+  p.append(createElement(i.tag, i.attrs, i.callback))
+  queryDesc.append(p)
 }
-
-createUIQuery()
+console.timeEnd("create-ui")

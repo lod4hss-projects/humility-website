@@ -61,3 +61,10 @@ table#kwic .keyword {
 table#kwic tr {
   border: 1px solid black;
 }
+table.tb-inline td {
+  display: inline;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
