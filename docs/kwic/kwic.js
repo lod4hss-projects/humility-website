@@ -87,13 +87,17 @@ function runQuery() {
     params.push(value)
     params.push(value)
   }
+  const order_by = document.getElementById("order-by").value
+  checkIdentifier(order_by)
   console.log(params)
   console.time("query")
   const result = alasql(
     `
 WITH w AS (
-  SELECT
-    word.*
+  SELECT DISTINCT
+    word.idx,
+    word.len,
+    word.chunk
   FROM word
     JOIN lemma ON lemma.id = word.lemma
   WHERE (? = '' OR lemma.pos = ?)
@@ -107,6 +111,7 @@ SELECT
   substring(chunk.val, w.idx + w.len) AS ctx_right
   FROM w
   JOIN chunk ON chunk.id = w.chunk
+  ORDER BY ${order_by}, keyword
 `,
     params
   )
@@ -139,6 +144,13 @@ function createUIQuery() {
   }
   createInput(form, "lemma", "lemma")
   createInput(form, "hypernym", "hypernym")
+  form.append(
+    createSelectWithLabel(
+      "order by",
+      ["keyword", "ctx_left", "ctx_right"],
+      "order-by"
+    )
+  )
   const buttonDiv = document.createElement("div")
   const button = document.createElement("span")
   button.classList.add("submit")
