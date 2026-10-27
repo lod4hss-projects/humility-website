@@ -45,11 +45,18 @@ table#kwic {
   border: 1px solid black;
 }
 table#kwic .ctx_left {
+  vertical-align: top;
   text-align: right;
 }
+table#kwic .ctx_right {
+  vertical-align: top;
+}
 table#kwic .keyword {
+  vertical-align: top;
   text-align: center;
   font-weight: bold;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
 }
 table#kwic tr {
   border: 1px solid black;
