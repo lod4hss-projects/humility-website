@@ -36,6 +36,9 @@ label {
   background-color: blue;
   color: white;
 }
+select {
+  max-width: 100%;
+}
 table#kwic {
   border-collapse: collapse;
   border: 1px solid black;
