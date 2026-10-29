@@ -1,11 +1,7 @@
-html {
-  color: #1a1a1a;
-  color: light-dark(#1a1a1a, #fdfdfd);
-  background-color: #fdfdfd;
-  background-color: light-dark(#fdfdfd, #1a1a1a);
-  color-scheme: light dark;
-}
 body {
+  font:
+    1em "Verdana",
+    sans-serif;
   margin: 0;
   padding: 0;
   hyphens: auto;
@@ -28,7 +24,7 @@ div {
 label {
   margin: 0.4em;
 }
-#submit {
+.button {
   border: 1px solid blue;
   padding: 5px;
   margin: 1em;
@@ -36,7 +32,7 @@ label {
   cursor: pointer;
   color: blue;
 }
-#submit:hover {
+.button:hover {
   background-color: blue;
   color: white;
 }

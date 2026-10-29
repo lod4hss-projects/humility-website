@@ -46,7 +46,16 @@ function selectDistinctEmpty(table, column) {
 /* get the query parameters from the user interface. */
 function getQueryParams() {
   const params = []
-  for (let i of ["pos", "dep", "lemma", "hypernym"]) {
+  for (let i of [
+    "pos",
+    "dep",
+    "lemma",
+    "hypernym",
+    "language",
+    "work-label",
+    "year-start",
+    "year-end",
+  ]) {
     const value = (document.getElementById(i).value || "").trim()
     params.push(value)
     params.push(value)
@@ -67,10 +76,16 @@ WITH w AS (
     word.chunk
   FROM word
     JOIN lemma ON lemma.id = word.lemma
+    JOIN chunk ON chunk.id = word.chunk
+    JOIN excerpt ON excerpt.text = chunk.excerpt_uri
   WHERE (? = '' OR lemma.pos = ?)
     AND (? = '' OR word.dep = ?)
     AND (? = '' OR lemma.lemma LIKE '%' + ? + '%')
     AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
+    AND (? = '' OR excerpt.lang = ?)
+    AND (? = '' OR excerpt.source_label = ?)
+    AND (? = '' OR (excerpt.crea_year IS NOT NULL AND excerpt.crea_year >= ?))
+    AND (? = '' OR (excerpt.crea_year IS NOT NULL AND excerpt.crea_year <= ?))
 )
 SELECT
   chunk.excerpt_uri,
@@ -126,6 +141,33 @@ const ui = [
   },
   { label: "Hypernym", tag: "input", attrs: { id: "hypernym" } },
   { label: "Lemma", tag: "input", attrs: { id: "lemma" } },
+  /**** filters relative to the expression/work metadata ****/
+  { tag: "hr" },
+  {
+    label: "Language (orig. text)",
+    tag: "select",
+    attrs: { id: "language" },
+    callback: (i) => populateSelect(i, selectDistinctEmpty("excerpt", "lang")),
+  },
+  {
+    label: "Year (start)",
+    tag: "input",
+    attrs: { type: "number", id: "year-start" },
+  },
+  {
+    label: "Year (end)",
+    tag: "input",
+    attrs: { type: "number", id: "year-end" },
+  },
+  {
+    label: "Work",
+    tag: "select",
+    attrs: { id: "work-label" },
+    callback: (i) =>
+      populateSelect(i, selectDistinctEmpty("excerpt", "source_label")),
+  },
+  /**** presentations options ****/
+  { tag: "hr" },
   {
     label: "Order By",
     tag: "select",
@@ -145,12 +187,28 @@ const ui = [
       },
     },
   },
-  {
-    tag: "span",
-    attrs: { id: "submit", textContent: "submit", onclick: updateKWIC },
-  },
   // TODO: add filter idea/text
   // TODO: add filter with work metadata, such as orig_language, year, ...
+  /**** submit button at the end ****/
+  { tag: "hr" },
+  {
+    tag: "span",
+    attrs: {
+      id: "submit",
+      className: "button",
+      textContent: "submit",
+      onclick: updateKWIC,
+    },
+  },
+  {
+    tag: "span",
+    attrs: {
+      id: "reset",
+      className: "button",
+      textContent: "reset",
+      onclick: createUI,
+    },
+  },
 ]
 
 /****** Load the data and build the interface ******/
@@ -160,7 +218,7 @@ const ui = [
  * however, we only load data once, so it's fine for now.
  * */
 console.time("csv")
-for (let i of ["lemma", "word", "chunk"]) {
+for (let i of ["lemma", "word", "chunk", "excerpt"]) {
   await alasql.promise(
     `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
     [`./${i}.csv`]
@@ -182,12 +240,19 @@ Object.entries(indexes).forEach(([t, cols]) => {
 })
 console.timeEnd("index")
 
-/* create the query user interface */
-console.time("create-ui")
-for (let i of ui) {
-  const p = createElement("p")
-  if (i.label) p.append(createElement("label", { textContent: `${i.label}: ` }))
-  p.append(createElement(i.tag, i.attrs, i.callback))
-  queryDesc.append(p)
+function createUI() {
+  /* create the query user interface */
+  console.time("create-ui")
+  queryDesc.innerHTML = ""
+  tbody.innerHTML = ""
+  for (let i of ui) {
+    const p = createElement("p")
+    if (i.label)
+      p.append(createElement("label", { textContent: `${i.label}: ` }))
+    p.append(createElement(i.tag, i.attrs, i.callback))
+    queryDesc.append(p)
+  }
+  console.timeEnd("create-ui")
 }
-console.timeEnd("create-ui")
+
+createUI()
