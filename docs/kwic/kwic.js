@@ -34,12 +34,12 @@ function checkIdentifier(identifier) {
 }
 
 /* SELECT DISTINCT from `table`.`column`, plus an empty string at the start. */
-function selectDistinctEmpty(table, column) {
+function selectDistinct(table, column, addEmpty = true) {
   checkIdentifier(table)
   checkIdentifier(column)
   const query = `SELECT DISTINCT ${column} from ${table} ORDER BY ${column}`
   const values = alasql(query).map((i) => i[column])
-  values.unshift("")
+  if (addEmpty) values.unshift("")
   return values
 }
 
@@ -51,6 +51,7 @@ function getQueryParams() {
     "dep",
     "lemma",
     "hypernym",
+    "type",
     "language",
     "work-label",
     "year-start",
@@ -82,6 +83,7 @@ WITH w AS (
     AND (? = '' OR word.dep = ?)
     AND (? = '' OR lemma.lemma LIKE '%' + ? + '%')
     AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
+    AND (? = '' OR chunk.type = ?)
     AND (? = '' OR excerpt.lang = ?)
     AND (? = '' OR excerpt.source_label = ?)
     AND (? = '' OR (excerpt.crea_year IS NOT NULL AND excerpt.crea_year >= ?))
@@ -128,16 +130,22 @@ function updateKWIC() {
 
 const ui = [
   {
+    label: "Type",
+    tag: "select",
+    attrs: { id: "type" },
+    callback: (i) => populateSelect(i, selectDistinct("chunk", "type", false)),
+  },
+  {
     label: "Part Of Speech",
     tag: "select",
     attrs: { id: "pos" },
-    callback: (i) => populateSelect(i, selectDistinctEmpty("lemma", "pos")),
+    callback: (i) => populateSelect(i, selectDistinct("lemma", "pos", true)),
   },
   {
     label: "Dependency Label",
     tag: "select",
     attrs: { id: "dep" },
-    callback: (i) => populateSelect(i, selectDistinctEmpty("word", "dep")),
+    callback: (i) => populateSelect(i, selectDistinct("word", "dep", true)),
   },
   { label: "Hypernym", tag: "input", attrs: { id: "hypernym" } },
   { label: "Lemma", tag: "input", attrs: { id: "lemma" } },
@@ -147,7 +155,7 @@ const ui = [
     label: "Language (orig. text)",
     tag: "select",
     attrs: { id: "language" },
-    callback: (i) => populateSelect(i, selectDistinctEmpty("excerpt", "lang")),
+    callback: (i) => populateSelect(i, selectDistinct("excerpt", "lang", true)),
   },
   {
     label: "Year (start)",
@@ -164,7 +172,7 @@ const ui = [
     tag: "select",
     attrs: { id: "work-label" },
     callback: (i) =>
-      populateSelect(i, selectDistinctEmpty("excerpt", "source_label")),
+      populateSelect(i, selectDistinct("excerpt", "source_label", false)),
   },
   /**** presentations options ****/
   { tag: "hr" },
@@ -233,7 +241,8 @@ console.time("index")
 const indexes = {
   word: ["string", "lemma"],
   lemma: ["id", "pos"],
-  chunk: ["id"],
+  chunk: ["id", "excerpt_uri", "type"],
+  excerpt: ["text"],
 }
 Object.entries(indexes).forEach(([t, cols]) => {
   cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
@@ -241,6 +250,7 @@ Object.entries(indexes).forEach(([t, cols]) => {
 console.timeEnd("index")
 
 function createUI() {
+  // TODO: build the query in `index.html` and only populate the <select> here.
   /* create the query user interface */
   console.time("create-ui")
   queryDesc.innerHTML = ""
