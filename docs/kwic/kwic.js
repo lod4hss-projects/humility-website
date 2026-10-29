@@ -130,12 +130,6 @@ function updateKWIC() {
 
 const ui = [
   {
-    label: "Type",
-    tag: "select",
-    attrs: { id: "type" },
-    callback: (i) => populateSelect(i, selectDistinct("chunk", "type", false)),
-  },
-  {
     label: "Part Of Speech",
     tag: "select",
     attrs: { id: "pos" },
@@ -149,6 +143,14 @@ const ui = [
   },
   { label: "Hypernym", tag: "input", attrs: { id: "hypernym" } },
   { label: "Lemma", tag: "input", attrs: { id: "lemma" } },
+  { tag: "hr" },
+  /**** chunk text or idea subcorpus ****/
+  {
+    label: "Subcorpus",
+    tag: "select",
+    attrs: { id: "type" },
+    callback: (i) => populateSelect(i, ["text", "idea"]),
+  },
   /**** filters relative to the expression/work metadata ****/
   { tag: "hr" },
   {

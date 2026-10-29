@@ -42,6 +42,7 @@ select {
 table#kwic {
   border-collapse: collapse;
   border: 1px solid black;
+  width: 100%;
 }
 table#kwic .ctx_left {
   vertical-align: top;
