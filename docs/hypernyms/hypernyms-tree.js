@@ -1,20 +1,109 @@
 // adapted from https://observablehq.com/@d3/collapsible-tree
 
-var data = await d3.json("tree.json")
-
-const ideas_csv = await d3.csv("ideas.csv")
-
-function add_ideas(node) {
-  node.ideas = []
-  ideas_csv.forEach((i) => {
-    if (i.path.startsWith(node.path)) {
-      node.ideas.push(i.idea)
-    }
-  })
-  node.children.forEach(add_ideas)
+/* helper function to create an element and set its attributes.
+ * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
+ * */
+function createElement(tag, attrs, callback) {
+  const elem = document.createElement(tag)
+  if (attrs)
+    Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))
+  if (callback) callback(elem)
+  return elem
 }
 
-add_ideas(data)
+/* load tree as JSON */
+console.time("load-tree")
+const dataTree = await d3.json("./tree.json")
+console.timeEnd("load-tree")
+
+/* load CSV chunk and words */
+console.time("csv")
+for (let i of ["chunk", "word"]) {
+  await alasql.promise(
+    `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
+    [`./${i}.csv`]
+  )
+}
+console.timeEnd("csv")
+
+/* load `synset` JSON */
+console.time("json")
+await alasql.promise(
+  `
+create table synset;
+select
+  [0] as id,
+  [1] as label,
+  [2] as definition,
+  [3] as lemmas,
+  [4] as examples,
+  [5] as hypernym_path
+into synset
+from json("synset.json")
+`
+)
+console.timeEnd("json")
+
+/* build indexes */
+console.time("index")
+const indexes = {
+  word: ["chunk", "lemma"],
+  chunk: ["id"],
+  synset: ["id"],
+}
+Object.entries(indexes).forEach(([t, cols]) => {
+  cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
+})
+console.timeEnd("index")
+
+function update_synset_info(path) {
+  console.time("query_synset")
+  var synset = alasql(`SELECT * FROM synset where hypernym_path like ?`, path)
+  if (synset.length == 0) return
+  synset = synset[0]
+  console.timeEnd("query_synset")
+  for (let id of ["label", "definition", "lemmas", "examples"]) {
+    var value = synset[id]
+    if (typeof value == "string") value = [value]
+    document.getElementById(id).textContent = value.join(", ")
+  }
+}
+
+function update_synset_chunks(path) {
+  console.time("query-chunks")
+  const chunks = alasql(
+    `
+with w as (
+  select distinct word.chunk, word.idx, word.len from word
+  join synset on synset.id = word.synset
+  where synset.hypernym_path like ? + '%'
+  )
+select
+  substring(chunk.val, 1, w.idx - 1) as ctx_left,
+  substring(chunk.val, w.idx, w.len) as keyword,
+  substring(chunk.val, w.idx + w.len) as ctx_right
+  from w
+  join chunk on chunk.id = w.chunk
+  order by keyword, ctx_left, ctx_right`,
+    [path]
+  )
+  console.timeEnd("query-chunks")
+  const div = document.getElementById("chunks")
+  div.innerHTML = ""
+  const attrs = ["ctx_left", "keyword", "ctx_right"]
+  chunks.forEach((i) => {
+    const p = createElement("p", { className: "chunk" })
+    attrs.forEach((j) => {
+      p.append(createElement("span", { className: j, textContent: i[j] }))
+    })
+    div.append(p)
+  })
+}
+
+function update_synset(path) {
+  update_synset_chunks(path)
+  update_synset_info(path)
+}
 
 const width = 928
 const marginTop = 10
@@ -22,7 +111,7 @@ const marginRight = 10
 const marginBottom = 10
 const marginLeft = 40
 
-const root = d3.hierarchy(data)
+const root = d3.hierarchy(dataTree)
 const dx = 14
 const dy = 120
 
@@ -88,14 +177,8 @@ function update(event, source) {
     .attr("stroke-opacity", 0)
     .on("click", (event, d) => {
       d.children = d.children ? null : d._children
-      // TODO: make something cleaner
-      const div = d3.select("#ideas")
-      document.getElementById("ideas").innerHTML = ""
-      div.append("h3").text(d.data.name)
-      d.data.ideas.forEach((idea) => {
-        div.append("p").text(idea)
-      })
       update(event, d)
+      update_synset(d.data.path)
     })
 
   nodeEnter
@@ -169,3 +252,4 @@ root.descendants().forEach((d, i) => {
 })
 
 update(null, root)
+update_synset("entity")
