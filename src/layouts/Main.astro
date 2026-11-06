@@ -1,0 +1,21 @@
+---
+const { title, author, description, keywords, libs, stylesheets, ...props } =
+  Astro.props
+
+import Head from "@components/Head.astro"
+---
+
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <Head
+    title={title}
+    author={author}
+    description={description}
+    keywords={keywords}
+    libs={libs}
+    stylesheets={stylesheets}
+  />
+  <body>
+    <slot />
+  </body>
+</html>

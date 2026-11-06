@@ -1,0 +1,341 @@
+---
+import Main from "@layouts/Main.astro"
+---
+
+<Main
+  title="Key Word In Context"
+  libs={[
+    "https://cdn.jsdelivr.net/alasql/0.2/alasql.min.js",
+    "https://d3js.org/d3.v7.js",
+  ]}
+>
+  <style is:global>
+    html,
+    body {
+      height: 100%;
+      max-height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #tree {
+      position: absolute;
+      top: 0;
+      height: 50%;
+      width: 100%;
+      overflow: scroll;
+      border-bottom: 1px solid black;
+      background-color: #edf;
+    }
+    #synset,
+    #chunks {
+      position: absolute;
+      top: 50%;
+      overflow: scroll;
+      text-overflow: scroll;
+      width: calc(50% - 2em - 1px);
+      padding: 0 1em;
+      max-width: 50%;
+      height: 50%;
+      margin: 0;
+      border-top: 1px solid black;
+      border-left: 1px solid black;
+    }
+    #synset {
+      left: 0;
+      background-color: #efe;
+    }
+    #chunks {
+      left: 50%;
+      background-color: #fff;
+    }
+    dt {
+      font-weight: bold;
+    }
+    dt:after {
+      content: ":";
+      font-weight: normal;
+    }
+    dd {
+      margin-top: 0.5em;
+      margin-bottom: 1em;
+    }
+    .keyword {
+      font-weight: bold;
+    }
+  </style>
+
+  <div id="tree"></div>
+  <div id="chunks"></div>
+  <div id="synset">
+    <h2 id="label"></h2>
+    <dl>
+      <dt>definition</dt>
+      <dd id="definition"></dd>
+      <dt>lemmas</dt>
+      <dd id="lemmas"></dd>
+      <dt>examples</dt>
+      <dd id="examples"></dd>
+    </dl>
+  </div>
+
+  <script>
+    // adapted from https://observablehq.com/@d3/collapsible-tree
+    /* helper function to create an element and set its attributes.
+     * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
+     * */
+    function createElement(tag, attrs, callback) {
+      const elem = document.createElement(tag)
+      if (attrs)
+        Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))
+      if (callback) callback(elem)
+      return elem
+    }
+
+    /* load tree as JSON */
+    console.time("load-tree")
+    const dataTree = await d3.json("/data/taxonomy.json")
+    console.timeEnd("load-tree")
+
+    /* load CSV chunk and words */
+    console.time("csv")
+    for (let i of ["chunk", "word"]) {
+      await alasql.promise(
+        `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
+        [`/data/${i}.csv`]
+      )
+    }
+    console.timeEnd("csv")
+
+    /* load `synset` JSON */
+    console.time("json")
+    await alasql.promise(
+      `
+create table synset;
+select
+  [0] as id,
+  [1] as label,
+  [2] as definition,
+  [3] as lemmas,
+  [4] as examples,
+  [5] as hypernym_path
+into synset
+from json("/data/synset.json")
+`
+    )
+    console.timeEnd("json")
+
+    /* build indexes */
+    console.time("index")
+    const indexes = {
+      word: ["chunk", "lemma"],
+      chunk: ["id"],
+      synset: ["id"],
+    }
+    Object.entries(indexes).forEach(([t, cols]) => {
+      cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
+    })
+    console.timeEnd("index")
+
+    function update_synset_info(path) {
+      console.time("query_synset")
+      var synset = alasql(
+        `SELECT * FROM synset where hypernym_path like ?`,
+        path
+      )
+      if (synset.length == 0) return
+      synset = synset[0]
+      console.timeEnd("query_synset")
+      for (let id of ["label", "definition", "lemmas", "examples"]) {
+        var value = synset[id]
+        if (typeof value == "string") value = [value]
+        document.getElementById(id).textContent = value.join(", ")
+      }
+    }
+
+    function update_synset_chunks(path) {
+      console.time("query-chunks")
+      const chunks = alasql(
+        `
+with w as (
+  select distinct word.chunk, word.idx, word.len from word
+  join synset on synset.id = word.synset
+  where synset.hypernym_path like ? + '%'
+)
+select
+  substring(chunk.text, 1, w.idx - 1) as ctx_left,
+  substring(chunk.text, w.idx, w.len) as keyword,
+  substring(chunk.text, w.idx + w.len) as ctx_right
+  from w
+  join chunk on chunk.id = w.chunk
+  order by keyword, ctx_left, ctx_right`,
+        [path]
+      )
+      console.timeEnd("query-chunks")
+      console.log(chunks)
+      const div = document.getElementById("chunks")
+      div.innerHTML = ""
+      const attrs = ["ctx_left", "keyword", "ctx_right"]
+      chunks.forEach((i) => {
+        const p = createElement("p", { className: "chunk" })
+        attrs.forEach((j) => {
+          p.append(createElement("span", { className: j, textContent: i[j] }))
+        })
+        div.append(p)
+      })
+    }
+
+    function update_synset(path) {
+      update_synset_chunks(path)
+      update_synset_info(path)
+    }
+
+    const width = 928
+    const marginTop = 10
+    const marginRight = 10
+    const marginBottom = 10
+    const marginLeft = 40
+
+    const root = d3.hierarchy(dataTree)
+    const dx = 14
+    const dy = 120
+
+    const tree = d3.tree().nodeSize([dx, dy])
+    const diagonal = d3
+      .linkHorizontal()
+      .x((d) => d.y)
+      .y((d) => d.x)
+
+    const svg = d3
+      .select("#tree")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", dx)
+      .attr("viewBox", [-marginLeft, -marginTop, width, dx])
+      .attr("style", "width: 2000px; height: auto; font: 10px sans-serif")
+
+    const gLink = svg
+      .append("g")
+      .attr("fill", "none")
+      .attr("stroke", "#555")
+      .attr("stroke-opacity", 0.4)
+      .attr("stroke-width", 1.5)
+
+    const gNode = svg
+      .append("g")
+      .attr("cursor", "pointer")
+      .attr("pointer-events", "all")
+
+    function update(event, source) {
+      const duration = event?.altKey ? 2500 : 250
+      const nodes = root.descendants().reverse()
+      const links = root.links()
+
+      tree(root)
+
+      let left = root
+      let right = root
+      root.eachBefore((node) => {
+        if (node.x < left.x) left = node
+        if (node.x > right.x) right = node
+      })
+
+      const height = right.x - left.x + marginTop + marginBottom
+
+      const transition = svg
+        .transition()
+        .duration(duration)
+        .attr("height", height)
+        .attr("viewBox", [-marginLeft, left.x - marginTop, width, height])
+        .tween(
+          "resize",
+          window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
+        )
+
+      const node = gNode.selectAll("g").data(nodes, (d) => d.id)
+
+      const nodeEnter = node
+        .enter()
+        .append("g")
+        .attr("transform", (d) => `translate(${source.y0},${source.x0})`)
+        .attr("fill-opacity", 0)
+        .attr("stroke-opacity", 0)
+        .on("click", (event, d) => {
+          d.children = d.children ? null : d._children
+          update(event, d)
+          update_synset(d.data.path)
+        })
+
+      nodeEnter
+        .append("circle")
+        .attr("r", 2.5)
+        .attr("fill", (d) => (d._children ? "#555" : "#999"))
+        .attr("stroke-width", 10)
+
+      nodeEnter
+        .append("text")
+        .attr("dy", "0.31em")
+        .attr("x", (d) => (d._children ? -6 : 6))
+        .attr("text-anchor", (d) => (d._children ? "end" : "start"))
+        .text((d) => d.data.name)
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-width", 5)
+        .attr("stroke", "white")
+        .attr("paint-order", "stroke")
+
+      const nodeUpdate = node
+        .merge(nodeEnter)
+        .transition(transition)
+        .attr("transform", (d) => `translate(${d.y},${d.x})`)
+        .attr("fill-opacity", 1)
+        .attr("stroke-opacity", 1)
+
+      const nodeExit = node
+        .exit()
+        .transition(transition)
+        .remove()
+        .attr("transform", (d) => `translate(${source.y},${source.x})`)
+        .attr("fill-opacity", 0)
+        .attr("stroke-opacity", 0)
+
+      const link = gLink.selectAll("path").data(links, (d) => d.target.id)
+
+      const linkEnter = link
+        .enter()
+        .append("path")
+        .attr("stroke-width", 1)
+        .attr("stroke", "#888")
+        .attr("stroke-opacity", 1)
+        .attr("d", (d) => {
+          const o = { x: source.x0, y: source.y0 }
+          return diagonal({ source: o, target: o })
+        })
+
+      link.merge(linkEnter).transition(transition).attr("d", diagonal)
+
+      link
+        .exit()
+        .transition(transition)
+        .remove()
+        .attr("d", (d) => {
+          const o = { x: source.x, y: source.y }
+          return diagonal({ source: o, target: o })
+        })
+
+      root.eachBefore((d) => {
+        d.x0 = d.x
+        d.y0 = d.y
+      })
+    }
+
+    root.x0 = dy / 2
+    root.y0 = 0
+    root.descendants().forEach((d, i) => {
+      d.id = i
+      d._children = d.children
+      if (d.depth > 0) d.children = null
+    })
+
+    update(null, root)
+    update_synset("entity")
+  </script>
+</Main>

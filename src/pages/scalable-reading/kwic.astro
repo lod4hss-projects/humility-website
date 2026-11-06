@@ -1,0 +1,369 @@
+---
+import Main from "@layouts/Main.astro"
+---
+
+<Main
+  title="Key Word In Context"
+  libs={["//cdn.jsdelivr.net/alasql/0.2/alasql.min.js"]}
+>
+  <style is:global>
+    body {
+      font:
+        1em "Verdana",
+        sans-serif;
+      margin: 0;
+      padding: 0;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    div {
+      margin: 1em;
+    }
+    label {
+      margin: 0.4em;
+    }
+    .button {
+      border: 1px solid blue;
+      padding: 5px;
+      margin: 1em;
+      text-decoration: underline;
+      cursor: pointer;
+      color: blue;
+    }
+    .button:hover {
+      background-color: blue;
+      color: white;
+    }
+    select {
+      max-width: 100%;
+    }
+    table#kwic {
+      border-collapse: collapse;
+      border: 1px solid black;
+      width: 100%;
+    }
+    table#kwic .ctx_left {
+      vertical-align: top;
+      text-align: right;
+    }
+    table#kwic .ctx_right {
+      vertical-align: top;
+    }
+    table#kwic .keyword {
+      vertical-align: top;
+      text-align: center;
+      font-weight: bold;
+      margin-left: 0.5em;
+      margin-right: 0.5em;
+    }
+    table#kwic tr {
+      border: 1px solid black;
+    }
+    table.tb-inline td {
+      display: inline;
+    }
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+  </style>
+  <h1>Key Word In Context</h1>
+
+  <div id="query"></div>
+
+  <table id="kwic">
+    <colgroup>
+      <col style="width:45%" />
+      <col style="width:10%" />
+      <col style="width:45%" />
+    </colgroup>
+    <tbody id="kwic-tbody"></tbody>
+  </table>
+
+  <script>
+    const ROOT = "https://humility.lod4hss.org"
+    const BASE_URI = `${ROOT}/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F`
+
+    const kwic = document.getElementById("kwic")
+    const queryDesc = document.getElementById("query")
+    const tbody = document.getElementById("kwic-tbody")
+
+    /* helper function to create an element and set its attributes.
+     * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
+     * */
+    function createElement(tag, attrs, callback) {
+      const elem = document.createElement(tag)
+      if (attrs)
+        Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))
+      if (callback) callback(elem)
+      return elem
+    }
+
+    /* populate a <select> element with values as <option> */
+    function populateSelect(select, values) {
+      for (let i of values)
+        select.append(createElement("option", { value: i, text: i }))
+    }
+
+    /* check that identifier are safe.
+     * this is not really important since there's no actual database.
+     * but let's stick to safe practices anyway!
+     * */
+    const re_identifier = /^[A-Za-z_]+$/
+    function checkIdentifier(identifier) {
+      if (!re_identifier.exec(identifier)) {
+        throw new Error("Invalid identifier")
+      }
+    }
+
+    /* SELECT DISTINCT from `table`.`column`, plus an empty string at the start. */
+    function selectDistinct(table, column, addEmpty = true) {
+      checkIdentifier(table)
+      checkIdentifier(column)
+      const query = `SELECT DISTINCT ${column} from ${table} ORDER BY ${column}`
+      const values = alasql(query).map((i) => i[column])
+      if (addEmpty) values.unshift("")
+      return values
+    }
+
+    /* get the query parameters from the user interface. */
+    function getQueryParams() {
+      const params = []
+      for (let i of [
+        "pos",
+        "dep",
+        "lemma",
+        "hypernym",
+        "type",
+        "language",
+        "work-label",
+        "year-start",
+        "year-end",
+      ]) {
+        const value = (document.getElementById(i).value || "").trim()
+        params.push(value)
+        params.push(value)
+      }
+      return params
+    }
+
+    /* run the select KWIC query using user-defined parameters. */
+    function runQuery() {
+      const params = getQueryParams()
+      const orderBy = document.getElementById("order-by").value
+      return alasql(
+        `
+WITH w AS (
+  SELECT DISTINCT
+    word.idx,
+    word.len,
+    word.chunk
+  FROM word
+    JOIN lemma ON lemma.id = word.lemma
+    JOIN chunk ON chunk.id = word.chunk
+    JOIN passage ON passage.uri = chunk.passage_uri
+  WHERE (? = '' OR lemma.pos = ?)
+    AND (? = '' OR word.dep = ?)
+    AND (? = '' OR lemma.lemma LIKE '%' + ? + '%')
+    AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
+    AND (? = '' OR chunk.type = ?)
+    AND (? = '' OR passage.lang = ?)
+    AND (? = '' OR passage.label = ?)
+    AND (? = '' OR (passage.year IS NOT NULL AND passage.year >= ?))
+    AND (? = '' OR (passage.year IS NOT NULL AND passage.year <= ?))
+)
+SELECT
+  chunk.passage_uri,
+  substring(chunk.text, 1, w.idx - 1) AS ctx_left,
+  substring(chunk.text, w.idx, w.len) AS keyword,
+  substring(chunk.text, w.idx + w.len) AS ctx_right
+  FROM w
+  JOIN chunk ON chunk.id = w.chunk
+  ORDER BY ${orderBy}, keyword, ctx_left, ctx_right
+`,
+        params
+      )
+    }
+
+    /* update the KWIC table. */
+    function updateKWIC() {
+      console.time("query")
+      const result = runQuery()
+      console.timeEnd("query")
+      console.time("update")
+      tbody.innerHTML = ""
+      result.forEach((i) => {
+        const tr = createElement("tr")
+        for (let j of ["ctx_left", "keyword", "ctx_right"]) {
+          const td = createElement("td", { className: j })
+          td.append(
+            createElement("a", {
+              textContent: i[j],
+              href: `${BASE_URI}${i.passage_uri}`,
+            })
+          )
+          tr.append(td)
+        }
+        tbody.append(tr)
+      })
+      console.timeEnd("update")
+    }
+
+    /****** Describe the components of the interface. ******/
+
+    const ui = [
+      {
+        label: "Part Of Speech",
+        tag: "select",
+        attrs: { id: "pos" },
+        callback: (i) =>
+          populateSelect(i, selectDistinct("lemma", "pos", true)),
+      },
+      {
+        label: "Dependency Label",
+        tag: "select",
+        attrs: { id: "dep" },
+        callback: (i) => populateSelect(i, selectDistinct("word", "dep", true)),
+      },
+      { label: "Hypernym", tag: "input", attrs: { id: "hypernym" } },
+      { label: "Lemma", tag: "input", attrs: { id: "lemma" } },
+      { tag: "hr" },
+      /**** chunk text or idea subcorpus ****/
+      {
+        label: "Subcorpus",
+        tag: "select",
+        attrs: { id: "type" },
+        callback: (i) => populateSelect(i, ["text", "idea"]),
+      },
+      /**** filters relative to the expression/work metadata ****/
+      { tag: "hr" },
+      {
+        label: "Language (orig. text)",
+        tag: "select",
+        attrs: { id: "language" },
+        callback: (i) =>
+          populateSelect(i, selectDistinct("passage", "lang", true)),
+      },
+      {
+        label: "Year (start)",
+        tag: "input",
+        attrs: { type: "number", id: "year-start" },
+      },
+      {
+        label: "Year (end)",
+        tag: "input",
+        attrs: { type: "number", id: "year-end" },
+      },
+      {
+        label: "Work",
+        tag: "select",
+        attrs: { id: "work-label" },
+        callback: (i) =>
+          populateSelect(i, selectDistinct("passage", "label", true)),
+      },
+      /**** presentations options ****/
+      { tag: "hr" },
+      {
+        label: "Order By",
+        tag: "select",
+        attrs: { id: "order-by" },
+        callback: (i) =>
+          populateSelect(i, ["keyword", "ctx_left", "ctx_right"]),
+      },
+      {
+        label: "Aligned",
+        tag: "input",
+        attrs: {
+          id: "aligned",
+          type: "checkbox",
+          checked: true,
+          onclick: (_) => {
+            const className = "tb-inline"
+            kwic.className = kwic.className == className ? "" : className
+          },
+        },
+      },
+      // TODO: add filter idea/text
+      // TODO: add filter with work metadata, such as orig_language, year, ...
+      /**** submit button at the end ****/
+      { tag: "hr" },
+      {
+        tag: "span",
+        attrs: {
+          id: "submit",
+          className: "button",
+          textContent: "submit",
+          onclick: updateKWIC,
+        },
+      },
+      {
+        tag: "span",
+        attrs: {
+          id: "reset",
+          className: "button",
+          textContent: "reset",
+          onclick: createUI,
+        },
+      },
+    ]
+
+    /****** Load the data and build the interface ******/
+
+    /* create tables from CSV files.
+     * this is the slowest part of the module. but we cannot really change this.
+     * however, we only load data once, so it's fine for now.
+     * */
+    console.time("csv")
+    for (let i of ["lemma", "word", "chunk", "passage"]) {
+      await alasql.promise(
+        `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
+        [`/data/${i}.csv`]
+      )
+    }
+    console.timeEnd("csv")
+
+    /* create indexes.
+     * i don't know if it's really more efficient, but it's quick.
+     * */
+    console.time("index")
+    const indexes = {
+      word: ["string", "lemma", "synset"],
+      lemma: ["id", "pos"],
+      chunk: ["id", "passage_uri", "type"],
+      passage: ["uri"],
+    }
+    Object.entries(indexes).forEach(([t, cols]) => {
+      cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
+    })
+    console.timeEnd("index")
+
+    function createUI() {
+      // TODO: build the query in `index.html` and only populate the <select> here.
+      /* create the query user interface */
+      console.time("create-ui")
+      queryDesc.innerHTML = ""
+      tbody.innerHTML = ""
+      for (let i of ui) {
+        const p = createElement("p")
+        if (i.label)
+          p.append(createElement("label", { textContent: `${i.label}: ` }))
+        p.append(createElement(i.tag, i.attrs, i.callback))
+        queryDesc.append(p)
+      }
+      console.timeEnd("create-ui")
+    }
+
+    createUI()
+  </script>
+</Main>

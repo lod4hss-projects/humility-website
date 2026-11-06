@@ -1,0 +1,30 @@
+<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="generator" content="pandoc 3.12.1"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"><meta name="author" content="LOD4HSS"><meta name="description" content><meta name="keywords" content=""><title>Key Word In Context</title><script type="text/javascript" src="//cdn.jsdelivr.net/alasql/0.2/alasql.min.js"></script><style>body{hyphens:auto;overflow-wrap:break-word;text-rendering:optimizelegibility;font-kerning:normal;margin:0;padding:0;font:1em Verdana,sans-serif}@media (width<=600px){body{padding:12px;font-size:.9em}h1{font-size:1.8em}}div{margin:1em}label{margin:.4em}.button{cursor:pointer;color:#00f;border:1px solid #00f;margin:1em;padding:5px;text-decoration:underline}.button:hover{color:#fff;background-color:#00f}select{max-width:100%}table#kwic{border-collapse:collapse;border:1px solid #000;width:100%}table#kwic .ctx_left{vertical-align:top;text-align:right}table#kwic .ctx_right{vertical-align:top}table#kwic .keyword{vertical-align:top;text-align:center;margin-left:.5em;margin-right:.5em;font-weight:700}table#kwic tr{border:1px solid #000}table.tb-inline td{display:inline}a{color:inherit;text-decoration:none}
+</style></head><body><h1>Key Word In Context</h1><div id="query"></div><table id="kwic"><colgroup><col style="width:45%"><col style="width:10%"><col style="width:45%"></colgroup><tbody id="kwic-tbody"></tbody></table><script type="module">var e=document.getElementById(`kwic`),t=document.getElementById(`query`),n=document.getElementById(`kwic-tbody`);function r(e,t,n){let r=document.createElement(e);return t&&Object.entries(t).forEach(([e,t])=>r[e]=t),n&&n(r),r}function i(e,t){for(let n of t)e.append(r(`option`,{value:n,text:n}))}var a=/^[A-Za-z_]+$/;function o(e){if(!a.exec(e))throw Error(`Invalid identifier`)}function s(e,t,n=!0){o(e),o(t);let r=`SELECT DISTINCT ${t} from ${e} ORDER BY ${t}`,i=alasql(r).map(e=>e[t]);return n&&i.unshift(``),i}function c(){let e=[];for(let t of[`pos`,`dep`,`lemma`,`hypernym`,`type`,`language`,`work-label`,`year-start`,`year-end`]){let n=(document.getElementById(t).value||``).trim();e.push(n),e.push(n)}return e}function l(){let e=c(),t=document.getElementById(`order-by`).value;return alasql(`
+WITH w AS (
+  SELECT DISTINCT
+    word.idx,
+    word.len,
+    word.chunk
+  FROM word
+    JOIN lemma ON lemma.id = word.lemma
+    JOIN chunk ON chunk.id = word.chunk
+    JOIN passage ON passage.uri = chunk.passage_uri
+  WHERE (? = '' OR lemma.pos = ?)
+    AND (? = '' OR word.dep = ?)
+    AND (? = '' OR lemma.lemma LIKE '%' + ? + '%')
+    AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
+    AND (? = '' OR chunk.type = ?)
+    AND (? = '' OR passage.lang = ?)
+    AND (? = '' OR passage.label = ?)
+    AND (? = '' OR (passage.year IS NOT NULL AND passage.year >= ?))
+    AND (? = '' OR (passage.year IS NOT NULL AND passage.year <= ?))
+)
+SELECT
+  chunk.passage_uri,
+  substring(chunk.text, 1, w.idx - 1) AS ctx_left,
+  substring(chunk.text, w.idx, w.len) AS keyword,
+  substring(chunk.text, w.idx + w.len) AS ctx_right
+  FROM w
+  JOIN chunk ON chunk.id = w.chunk
+  ORDER BY ${t}, keyword, ctx_left, ctx_right
+`,e)}function u(){console.time(`query`);let e=l();console.timeEnd(`query`),console.time(`update`),n.innerHTML=``,e.forEach(e=>{let t=r(`tr`);for(let n of[`ctx_left`,`keyword`,`ctx_right`]){let i=r(`td`,{className:n});i.append(r(`a`,{textContent:e[n],href:`https://humility.lod4hss.org/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F${e.passage_uri}`})),t.append(i)}n.append(t)}),console.timeEnd(`update`)}var d=[{label:`Part Of Speech`,tag:`select`,attrs:{id:`pos`},callback:e=>i(e,s(`lemma`,`pos`,!0))},{label:`Dependency Label`,tag:`select`,attrs:{id:`dep`},callback:e=>i(e,s(`word`,`dep`,!0))},{label:`Hypernym`,tag:`input`,attrs:{id:`hypernym`}},{label:`Lemma`,tag:`input`,attrs:{id:`lemma`}},{tag:`hr`},{label:`Subcorpus`,tag:`select`,attrs:{id:`type`},callback:e=>i(e,[`text`,`idea`])},{tag:`hr`},{label:`Language (orig. text)`,tag:`select`,attrs:{id:`language`},callback:e=>i(e,s(`passage`,`lang`,!0))},{label:`Year (start)`,tag:`input`,attrs:{type:`number`,id:`year-start`}},{label:`Year (end)`,tag:`input`,attrs:{type:`number`,id:`year-end`}},{label:`Work`,tag:`select`,attrs:{id:`work-label`},callback:e=>i(e,s(`passage`,`label`,!0))},{tag:`hr`},{label:`Order By`,tag:`select`,attrs:{id:`order-by`},callback:e=>i(e,[`keyword`,`ctx_left`,`ctx_right`])},{label:`Aligned`,tag:`input`,attrs:{id:`aligned`,type:`checkbox`,checked:!0,onclick:t=>{let n=`tb-inline`;e.className=e.className==n?``:n}}},{tag:`hr`},{tag:`span`,attrs:{id:`submit`,className:`button`,textContent:`submit`,onclick:u}},{tag:`span`,attrs:{id:`reset`,className:`button`,textContent:`reset`,onclick:f}}];console.time(`csv`);for(let e of[`lemma`,`word`,`chunk`,`passage`])await alasql.promise(`create table ${e}; select * into ${e} from csv(?, {separator:","})`,[`/data/${e}.csv`]);console.timeEnd(`csv`),console.time(`index`),Object.entries({word:[`string`,`lemma`,`synset`],lemma:[`id`,`pos`],chunk:[`id`,`passage_uri`,`type`],passage:[`uri`]}).forEach(([e,t])=>{t.forEach(t=>alasql(`create index index_${e}_${t} on ${e} (${t})`))}),console.timeEnd(`index`);function f(){console.time(`create-ui`),t.innerHTML=``,n.innerHTML=``;for(let e of d){let n=r(`p`);e.label&&n.append(r(`label`,{textContent:`${e.label}: `})),n.append(r(e.tag,e.attrs,e.callback)),t.append(n)}console.timeEnd(`create-ui`)}f();</script></body></html>
