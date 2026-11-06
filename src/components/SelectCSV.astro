@@ -1,0 +1,31 @@
+---
+/* Make a `<select>` with an `<option>` for each distinct value in a CSV. The `<select>` has an associated `<label>`. The `<select>` have a automated generated ID, based on the values of `<csvFileName>` and `<csvColumn>`.
+ *
+ * Parameters:
+ * - `label`: shown label.
+ * - `csvFileName`: the CSV filename, without directory nor extension.
+ * - `csvColumn`: the CSV column name.
+ *
+ * The generated ID is `select-${csvFileName}-${csvColumn}`.
+ * */
+
+import { readFileSync } from "fs"
+import { csvParse } from "d3"
+import Select from "@src/components/Select.astro"
+
+const { label, csvFileName, csvColumn, empty = true } = Astro.props
+
+const csvContent = readFileSync(`public/data/${csvFileName}.csv`, {
+  encoding: "utf8",
+  flag: "r",
+})
+const data = await csvParse(csvContent)
+
+const distinctValues: Set<string> = new Set()
+if (empty) distinctValues.add("")
+data.forEach((i: any) => distinctValues.add(i[csvColumn]))
+
+const id = `select-${csvFileName}-${csvColumn}`
+---
+
+<Select label={label} id={id} values={Array.from(distinctValues)} />

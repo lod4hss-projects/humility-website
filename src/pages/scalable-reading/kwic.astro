@@ -1,11 +1,15 @@
 ---
 import Main from "@layouts/Main.astro"
+import SelectCSV from "@src/components/SelectCSV.astro"
+import Select from "@src/components/Select.astro"
+import Input from "@src/components/Input.astro"
 ---
 
 <Main
   title="Key Word In Context"
-  libs={["//cdn.jsdelivr.net/alasql/0.2/alasql.min.js"]}
+  libs={["https://cdn.jsdelivr.net/alasql/0.2/alasql.min.js"]}
 >
+  <!-- TODO: SASS -->
   <style is:global>
     body {
       font:
@@ -26,6 +30,12 @@ import Main from "@layouts/Main.astro"
       h1 {
         font-size: 1.8em;
       }
+    }
+    fieldset {
+      border: 1px solid black;
+    }
+    legend {
+      font-size: 0.8em;
     }
     div {
       margin: 1em;
@@ -77,10 +87,55 @@ import Main from "@layouts/Main.astro"
       text-decoration: none;
       color: inherit;
     }
+    #buttons {
+      padding: 0;
+    }
+    #buttons button {
+      margin: 0.4em;
+    }
   </style>
   <h1>Key Word In Context</h1>
 
-  <div id="query"></div>
+  <div id="query">
+    <fieldset>
+      <legend>word properties</legend>
+      <SelectCSV label="Dependency label" csvFileName="word" csvColumn="dep" />
+      <SelectCSV label="Part of speech" csvFileName="lemma" csvColumn="pos" />
+      <Input label="Hypernym" id="hypernym" />
+      <Input label="Lemma" id="lemma" />
+    </fieldset>
+    <fieldset>
+      <legend>corpus</legend>
+      <SelectCSV
+        label="Text type"
+        csvFileName="chunk"
+        csvColumn="type"
+        empty={false}
+      />
+      <SelectCSV label="Language" csvFileName="passage" csvColumn="lang" />
+      <Input label="Year (start)" id="year-start" />
+      <Input label="Year (end)" id="year-end" />
+      <SelectCSV label="Work" csvFileName="passage" csvColumn="label" />
+    </fieldset>
+    <fieldset>
+      <legend>presentation</legend>
+      <Select
+        label="Order by"
+        id="order-by"
+        values={["keyword", "ctx_left", "ctx_right"]}
+      />
+      <Input label="Aligned" type="checkbox" value="checked" />
+    </fieldset>
+    <div id="buttons">
+      <button id="submit" onclick="updateKWIC()">
+        submit
+      </button>
+      <button id="reset" onclick="reset()">
+        reset
+      </button>
+    </div>
+    <!-- TODO: reset -->
+  </div>
 
   <table id="kwic">
     <colgroup>
@@ -91,12 +146,10 @@ import Main from "@layouts/Main.astro"
     <tbody id="kwic-tbody"></tbody>
   </table>
 
-  <script>
+  <script is:inline>
     const ROOT = "https://humility.lod4hss.org"
     const BASE_URI = `${ROOT}/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F`
 
-    const kwic = document.getElementById("kwic")
-    const queryDesc = document.getElementById("query")
     const tbody = document.getElementById("kwic-tbody")
 
     /* helper function to create an element and set its attributes.
@@ -110,48 +163,35 @@ import Main from "@layouts/Main.astro"
       return elem
     }
 
-    /* populate a <select> element with values as <option> */
-    function populateSelect(select, values) {
-      for (let i of values)
-        select.append(createElement("option", { value: i, text: i }))
-    }
+    const ids = [
+      "select-lemma-pos",
+      "select-word-dep",
+      "lemma",
+      "hypernym",
+      "select-chunk-type",
+      "select-passage-lang",
+      "select-passage-label",
+      "year-start",
+      "year-end",
+    ]
 
-    /* check that identifier are safe.
-     * this is not really important since there's no actual database.
-     * but let's stick to safe practices anyway!
-     * */
-    const re_identifier = /^[A-Za-z_]+$/
-    function checkIdentifier(identifier) {
-      if (!re_identifier.exec(identifier)) {
-        throw new Error("Invalid identifier")
-      }
-    }
-
-    /* SELECT DISTINCT from `table`.`column`, plus an empty string at the start. */
-    function selectDistinct(table, column, addEmpty = true) {
-      checkIdentifier(table)
-      checkIdentifier(column)
-      const query = `SELECT DISTINCT ${column} from ${table} ORDER BY ${column}`
-      const values = alasql(query).map((i) => i[column])
-      if (addEmpty) values.unshift("")
-      return values
+    function reset() {
+      ids.forEach((id) => {
+        const elem = document.getElementById(id)
+        if (!elem) console.error(`id not found: ${i}`)
+        if (elem.tagName.toLowerCase() == "select") {
+          elem.value = elem.childNodes[0].value
+        } else elem.value = elem["data-default"] || ""
+      })
     }
 
     /* get the query parameters from the user interface. */
     function getQueryParams() {
       const params = []
-      for (let i of [
-        "pos",
-        "dep",
-        "lemma",
-        "hypernym",
-        "type",
-        "language",
-        "work-label",
-        "year-start",
-        "year-end",
-      ]) {
-        const value = (document.getElementById(i).value || "").trim()
+      for (let i of ids) {
+        const elem = document.getElementById(i)
+        if (!elem) console.error(`id not found: ${i}`)
+        const value = (elem.value || "").trim()
         params.push(value)
         params.push(value)
       }
@@ -220,113 +260,13 @@ SELECT
       console.timeEnd("update")
     }
 
-    /****** Describe the components of the interface. ******/
-
-    const ui = [
-      {
-        label: "Part Of Speech",
-        tag: "select",
-        attrs: { id: "pos" },
-        callback: (i) =>
-          populateSelect(i, selectDistinct("lemma", "pos", true)),
-      },
-      {
-        label: "Dependency Label",
-        tag: "select",
-        attrs: { id: "dep" },
-        callback: (i) => populateSelect(i, selectDistinct("word", "dep", true)),
-      },
-      { label: "Hypernym", tag: "input", attrs: { id: "hypernym" } },
-      { label: "Lemma", tag: "input", attrs: { id: "lemma" } },
-      { tag: "hr" },
-      /**** chunk text or idea subcorpus ****/
-      {
-        label: "Subcorpus",
-        tag: "select",
-        attrs: { id: "type" },
-        callback: (i) => populateSelect(i, ["text", "idea"]),
-      },
-      /**** filters relative to the expression/work metadata ****/
-      { tag: "hr" },
-      {
-        label: "Language (orig. text)",
-        tag: "select",
-        attrs: { id: "language" },
-        callback: (i) =>
-          populateSelect(i, selectDistinct("passage", "lang", true)),
-      },
-      {
-        label: "Year (start)",
-        tag: "input",
-        attrs: { type: "number", id: "year-start" },
-      },
-      {
-        label: "Year (end)",
-        tag: "input",
-        attrs: { type: "number", id: "year-end" },
-      },
-      {
-        label: "Work",
-        tag: "select",
-        attrs: { id: "work-label" },
-        callback: (i) =>
-          populateSelect(i, selectDistinct("passage", "label", true)),
-      },
-      /**** presentations options ****/
-      { tag: "hr" },
-      {
-        label: "Order By",
-        tag: "select",
-        attrs: { id: "order-by" },
-        callback: (i) =>
-          populateSelect(i, ["keyword", "ctx_left", "ctx_right"]),
-      },
-      {
-        label: "Aligned",
-        tag: "input",
-        attrs: {
-          id: "aligned",
-          type: "checkbox",
-          checked: true,
-          onclick: (_) => {
-            const className = "tb-inline"
-            kwic.className = kwic.className == className ? "" : className
-          },
-        },
-      },
-      // TODO: add filter idea/text
-      // TODO: add filter with work metadata, such as orig_language, year, ...
-      /**** submit button at the end ****/
-      { tag: "hr" },
-      {
-        tag: "span",
-        attrs: {
-          id: "submit",
-          className: "button",
-          textContent: "submit",
-          onclick: updateKWIC,
-        },
-      },
-      {
-        tag: "span",
-        attrs: {
-          id: "reset",
-          className: "button",
-          textContent: "reset",
-          onclick: createUI,
-        },
-      },
-    ]
-
-    /****** Load the data and build the interface ******/
-
     /* create tables from CSV files.
      * this is the slowest part of the module. but we cannot really change this.
      * however, we only load data once, so it's fine for now.
      * */
     console.time("csv")
     for (let i of ["lemma", "word", "chunk", "passage"]) {
-      await alasql.promise(
+      alasql.promise(
         `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
         [`/data/${i}.csv`]
       )
@@ -347,23 +287,5 @@ SELECT
       cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
     })
     console.timeEnd("index")
-
-    function createUI() {
-      // TODO: build the query in `index.html` and only populate the <select> here.
-      /* create the query user interface */
-      console.time("create-ui")
-      queryDesc.innerHTML = ""
-      tbody.innerHTML = ""
-      for (let i of ui) {
-        const p = createElement("p")
-        if (i.label)
-          p.append(createElement("label", { textContent: `${i.label}: ` }))
-        p.append(createElement(i.tag, i.attrs, i.callback))
-        queryDesc.append(p)
-      }
-      console.timeEnd("create-ui")
-    }
-
-    createUI()
   </script>
 </Main>
