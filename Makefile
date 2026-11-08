@@ -47,11 +47,11 @@ public/data/%.csv: src/sql/csv/%.sql
 
 public/data/%.json: src/sql/json/%.sql
 	@mkdir -p $(@D)
-	psql -d $(dbname) -Xqt -f $< > $@
+	psql -d $(dbname) -Xqt -f $< | jq . -c > $@
 
 public/data/taxonomy.json: src/util/make_taxonomy.cjs public/data/taxonomy.csv
 	@mkdir -p $(@D)
-	node $^ > $@
+	node $^ | jq . -c > $@
 
 humility.sql:
 	pg_dump -d $(dbname) --no-owner --format plain --no-comments > $@

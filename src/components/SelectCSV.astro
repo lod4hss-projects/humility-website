@@ -28,4 +28,4 @@ data.forEach((i: any) => distinctValues.add(i[csvColumn]))
 id = id || `select-${csvFileName}-${csvColumn}`
 ---
 
-<Select label={label} id={id} values={Array.from(distinctValues)} />
+<Select {label} {id} values={Array.from(distinctValues)} />

@@ -7,9 +7,9 @@ const title = "Keyword in context"
 ---
 
 <Main
-  title={title}
+  {title}
   description="Keyword in context for the humility project."
-  keywords="keyword, textometry, humility"
+  keywords="keyword, textometry, scalable reading, humility, comparison"
 >
   <style>
     fieldset {
@@ -125,7 +125,6 @@ const title = "Keyword in context"
         id="order-by"
         values={["keyword", "ctx_left", "ctx_right"]}
       />
-      <!-- <Input label="Aligned" id="aligned" type="checkbox" value="checked" /> -->
     </fieldset>
     <div>
       <button id="button-submit">submit</button>
@@ -239,7 +238,6 @@ SELECT
         const row = createElement("div", { className: "row" })
         for (let j of ["ctx_left", "keyword", "ctx_right"]) {
           const span = createElement("span", { className: j })
-          console.log(i)
           span.append(
             createElement("a", {
               textContent: i[j],

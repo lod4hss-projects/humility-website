@@ -16,6 +16,7 @@ Look at the corpus from different distances and perspectives.
 
 - [Taxonomy](/scalable-reading/taxonomy)
 - [Keyword in context](/scalable-reading/kwic)
+- [Chunks](/scalable-reading/chunk)
 <!-- TODO: - [Chunks](/scalable-reading/chunks) -->
 <!-- TODO: - [Passages](/scalable-reading/passages) -->
 
