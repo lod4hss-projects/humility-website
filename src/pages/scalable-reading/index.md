@@ -1,3 +1,7 @@
+---
+layout: "@layouts/Doc.astro"
+---
+
 # Scalable Reading
 
 Look at the corpus from different distances and perspectives.

@@ -15,10 +15,9 @@
     "alasql": "^4.22.0",
     "astro": "^7.4.7",
     "d3": "^7.9.2",
-    "d3-dsv": "^3.0.2",
-    "d3-fetch": "^3.0.2",
-    "sass": "^1.108.0",
-    "typescript": "^7.0.2",
-    "typescript-language-server": "^6.0.3"
+    "sass": "^1.108.0"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3"
   }
 }

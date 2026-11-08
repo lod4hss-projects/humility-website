@@ -5,6 +5,6 @@ import { defineConfig } from "astro/config"
 export default defineConfig({
   site: "https://humility.lod4hss.org",
   base: "/",
-  outDir: "docs", // temporary
+  outDir: "docs",
   publicDir: "public",
 })

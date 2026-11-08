@@ -2,7 +2,6 @@
 const { label, id, type = "text", placeholder = "", value = "" } = Astro.props
 ---
 
-<!-- TODO: style this -->
 <style>
   div {
     margin: 0.4em;
@@ -10,10 +9,13 @@ const { label, id, type = "text", placeholder = "", value = "" } = Astro.props
   input {
     max-width: 100%;
   }
+  label {
+    margin: 0.4em;
+  }
 </style>
 
 <div>
-  <label>{label}</label>
+  <label for={id}>{label}:</label>
   {(value == "checked" && type == "checkbox" && (
     <input id={id} type="checkbox" checked data-default={value} />
   )) || (

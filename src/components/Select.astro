@@ -1,21 +1,26 @@
 ---
-/* Build a `<select>` with an `<option>` for each value, a `<label>` and an ID. */
-
+/* Make a `<select>` with an `<option>` for each value. */
 const { label, id, values } = Astro.props
 ---
 
-<!-- TODO: style this -->
 <style>
   div {
     margin: 0.4em;
   }
   select {
-    max-width: min(100%, 200px);
+    max-width: 200px;
+  }
+  option {
+    overflow: hidden;
+    max-width: 100px;
+  }
+  label {
+    margin: 0.4em;
   }
 </style>
 
 <div>
-  <label>{label}</label>
+  <label for={id}>{label}:</label>
   <select id={id}>
     {values.map((i) => (
       <option value={i}>{i}</option>

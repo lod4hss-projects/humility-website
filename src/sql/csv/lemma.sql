@@ -2,6 +2,7 @@ select
     lemma.id,
     lemma.lemma,
     pos.name as pos,
+    synset.id as synset,
     unnest(synset.hypernym_paths) as hypernym_path
 from
     lemma

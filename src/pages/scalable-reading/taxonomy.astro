@@ -2,24 +2,10 @@
 import Main from "@layouts/Main.astro"
 ---
 
-<Main
-  title="Key Word In Context"
-  libs={[
-    "https://cdn.jsdelivr.net/alasql/0.2/alasql.min.js",
-    "https://d3js.org/d3.v7.js",
-  ]}
->
-  <style is:global>
-    html,
-    body {
-      height: 100%;
-      max-height: 100%;
-      margin: 0;
-      padding: 0;
-    }
+<Main title="Hypernym Taxonomy">
+  <style>
     #tree {
       position: absolute;
-      top: 0;
       height: 50%;
       width: 100%;
       overflow: scroll;
@@ -29,7 +15,7 @@ import Main from "@layouts/Main.astro"
     #synset,
     #chunks {
       position: absolute;
-      top: 50%;
+      top: calc(50% - 1px);
       overflow: scroll;
       text-overflow: scroll;
       width: calc(50% - 2em - 1px);
@@ -59,6 +45,9 @@ import Main from "@layouts/Main.astro"
       margin-top: 0.5em;
       margin-bottom: 1em;
     }
+  </style>
+
+  <style is:global>
     .keyword {
       font-weight: bold;
     }
@@ -79,72 +68,41 @@ import Main from "@layouts/Main.astro"
   </div>
 
   <script>
-    // adapted from https://observablehq.com/@d3/collapsible-tree
-    /* helper function to create an element and set its attributes.
-     * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
-     * */
-    function createElement(tag, attrs, callback) {
-      const elem = document.createElement(tag)
-      if (attrs)
-        Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))
-      if (callback) callback(elem)
-      return elem
-    }
+    import alasql from "alasql"
+    import * as d3 from "d3"
+    import createElement from "@js/util.ts"
 
-    /* load tree as JSON */
-    console.time("load-tree")
     const dataTree = await d3.json("/data/taxonomy.json")
-    console.timeEnd("load-tree")
 
-    /* load CSV chunk and words */
-    console.time("csv")
-    for (let i of ["chunk", "word"]) {
+    for (let i of ["chunk", "word", "lemma"]) {
       await alasql.promise(
         `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
         [`/data/${i}.csv`]
       )
     }
-    console.timeEnd("csv")
 
-    /* load `synset` JSON */
-    console.time("json")
     await alasql.promise(
       `
-create table synset;
-select
-  [0] as id,
-  [1] as label,
-  [2] as definition,
-  [3] as lemmas,
-  [4] as examples,
-  [5] as hypernym_path
-into synset
-from json("/data/synset.json")
+CREATE TABLE synset;
+SELECT
+  [0] AS id,
+  [1] AS label,
+  [2] AS definition,
+  [3] AS lemmas,
+  [4] AS examples,
+  [5] AS hypernym_path
+INTO synset
+FROM json("/data/synset.json")
 `
     )
-    console.timeEnd("json")
-
-    /* build indexes */
-    console.time("index")
-    const indexes = {
-      word: ["chunk", "lemma"],
-      chunk: ["id"],
-      synset: ["id"],
-    }
-    Object.entries(indexes).forEach(([t, cols]) => {
-      cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
-    })
-    console.timeEnd("index")
 
     function update_synset_info(path) {
-      console.time("query_synset")
       var synset = alasql(
         `SELECT * FROM synset where hypernym_path like ?`,
         path
       )
       if (synset.length == 0) return
       synset = synset[0]
-      console.timeEnd("query_synset")
       for (let id of ["label", "definition", "lemmas", "examples"]) {
         var value = synset[id]
         if (typeof value == "string") value = [value]
@@ -153,25 +111,23 @@ from json("/data/synset.json")
     }
 
     function update_synset_chunks(path) {
-      console.time("query-chunks")
       const chunks = alasql(
         `
-with w as (
-  select distinct word.chunk, word.idx, word.len from word
-  join synset on synset.id = word.synset
-  where synset.hypernym_path like ? + '%'
+WITH w AS (
+  SELECT DISTINCT word.chunk, word.idx, word.len FROM word
+  JOIN lemma ON lemma.id = word.lemma
+  JOIN synset ON synset.id = lemma.synset
+  WHERE synset.hypernym_path LIKE ? + '%'
 )
-select
-  substring(chunk.text, 1, w.idx - 1) as ctx_left,
-  substring(chunk.text, w.idx, w.len) as keyword,
-  substring(chunk.text, w.idx + w.len) as ctx_right
-  from w
-  join chunk on chunk.id = w.chunk
-  order by keyword, ctx_left, ctx_right`,
+SELECT
+  substring(chunk.text, 1, w.idx - 1) AS ctx_left,
+  substring(chunk.text, w.idx, w.len) AS keyword,
+  substring(chunk.text, w.idx + w.len) AS ctx_right
+  FROM w
+  JOIN chunk ON chunk.id = w.chunk
+  ORDER BY keyword, ctx_left, ctx_right`,
         [path]
       )
-      console.timeEnd("query-chunks")
-      console.log(chunks)
       const div = document.getElementById("chunks")
       div.innerHTML = ""
       const attrs = ["ctx_left", "keyword", "ctx_right"]

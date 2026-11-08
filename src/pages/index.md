@@ -1,3 +1,7 @@
+---
+layout: "@layouts/Doc.astro"
+---
+
 # Humility in Theory and Practice
 
 ## Explore the collected information

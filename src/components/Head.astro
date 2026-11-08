@@ -5,7 +5,6 @@ const {
   description = "",
   keywords = [],
   stylesheets = [],
-  libs = [],
   ...props
 } = Astro.props
 ---
@@ -23,8 +22,5 @@ const {
   <title>{title}</title>
   {stylesheets.map((i) => (
     <link rel="stylesheet" href={i} />
-  ))}
-  {libs.map((i) => (
-    <script type="text/javascript" src={i}></script>
   ))}
 </head>

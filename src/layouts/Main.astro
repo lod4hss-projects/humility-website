@@ -1,8 +1,9 @@
 ---
-const { title, author, description, keywords, libs, stylesheets, ...props } =
+const { title, author, description, keywords, stylesheets, ...props } =
   Astro.props
 
 import Head from "@components/Head.astro"
+import Header from "@components/Header.astro"
 ---
 
 <!doctype html>
@@ -12,10 +13,32 @@ import Head from "@components/Head.astro"
     author={author}
     description={description}
     keywords={keywords}
-    libs={libs}
     stylesheets={stylesheets}
   />
+  <style>
+    html,
+    body {
+      height: 100%;
+      max-height: 100%;
+      margin: 0;
+      padding: 0;
+      font:
+        1em "Verdana",
+        sans-serif;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    main {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
   <body>
-    <slot />
+    <Header />
+    <main>
+      <slot />
+    </main>
   </body>
 </html>

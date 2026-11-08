@@ -3,34 +3,15 @@ import Main from "@layouts/Main.astro"
 import SelectCSV from "@src/components/SelectCSV.astro"
 import Select from "@src/components/Select.astro"
 import Input from "@src/components/Input.astro"
+const title = "Keyword in context"
 ---
 
 <Main
-  title="Key Word In Context"
-  libs={["https://cdn.jsdelivr.net/alasql/0.2/alasql.min.js"]}
+  title={title}
+  description="Keyword in context for the humility project."
+  keywords="keyword, textometry, humility"
 >
-  <!-- TODO: SASS -->
-  <style is:global>
-    body {
-      font:
-        1em "Verdana",
-        sans-serif;
-      margin: 0;
-      padding: 0;
-      hyphens: auto;
-      overflow-wrap: break-word;
-      text-rendering: optimizeLegibility;
-      font-kerning: normal;
-    }
-    @media (max-width: 600px) {
-      body {
-        font-size: 0.9em;
-        padding: 12px;
-      }
-      h1 {
-        font-size: 1.8em;
-      }
-    }
+  <style>
     fieldset {
       border: 1px solid black;
     }
@@ -40,67 +21,76 @@ import Input from "@src/components/Input.astro"
     div {
       margin: 1em;
     }
-    label {
-      margin: 0.4em;
-    }
-    .button {
-      border: 1px solid blue;
+    button {
+      border: 2px solid #04f;
+      background-color: #fff;
       padding: 5px;
       margin: 1em;
-      text-decoration: underline;
+      text-decoration: none;
       cursor: pointer;
-      color: blue;
+      color: #04f;
+      font-weight: bold;
     }
-    .button:hover {
-      background-color: blue;
+    button:hover {
+      background-color: #04f;
       color: white;
     }
     select {
       max-width: 100%;
     }
-    table#kwic {
-      border-collapse: collapse;
-      border: 1px solid black;
-      width: 100%;
+    h1 {
+      padding: 0 0.5em;
     }
-    table#kwic .ctx_left {
-      vertical-align: top;
-      text-align: right;
-    }
-    table#kwic .ctx_right {
-      vertical-align: top;
-    }
-    table#kwic .keyword {
-      vertical-align: top;
-      text-align: center;
-      font-weight: bold;
-      margin-left: 0.5em;
-      margin-right: 0.5em;
-    }
-    table#kwic tr {
-      border: 1px solid black;
-    }
-    table.tb-inline td {
-      display: inline;
-    }
+  </style>
+  <style is:global>
     a {
       text-decoration: none;
       color: inherit;
     }
-    #buttons {
+    #kwic {
       padding: 0;
+      margin: 0;
     }
-    #buttons button {
-      margin: 0.4em;
+    .row {
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 0;
+      margin: 0;
+    }
+    .ctx_right {
+    }
+    .keyword {
+      font-weight: bold;
+      margin: 0 4pt;
+    }
+    .ctx_left {
+      display: inline-block;
+      width: 48%;
+      vertical-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      direction: rtl;
+      text-align: right;
     }
   </style>
-  <h1>Key Word In Context</h1>
+  <h1>{title}</h1>
 
   <div id="query">
     <fieldset>
       <legend>word properties</legend>
-      <SelectCSV label="Dependency label" csvFileName="word" csvColumn="dep" />
-      <SelectCSV label="Part of speech" csvFileName="lemma" csvColumn="pos" />
+      <SelectCSV
+        label="Dependency label"
+        id="dep"
+        csvFileName="word"
+        csvColumn="dep"
+      />
+      <SelectCSV
+        label="Part of speech"
+        id="pos"
+        csvFileName="lemma"
+        csvColumn="pos"
+      />
       <Input label="Hypernym" id="hypernym" />
       <Input label="Lemma" id="lemma" />
     </fieldset>
@@ -110,12 +100,23 @@ import Input from "@src/components/Input.astro"
         label="Text type"
         csvFileName="chunk"
         csvColumn="type"
+        id="type"
         empty={false}
       />
-      <SelectCSV label="Language" csvFileName="passage" csvColumn="lang" />
+      <SelectCSV
+        label="Language"
+        id="lang"
+        csvFileName="passage"
+        csvColumn="lang"
+      />
       <Input label="Year (start)" id="year-start" />
       <Input label="Year (end)" id="year-end" />
-      <SelectCSV label="Work" csvFileName="passage" csvColumn="label" />
+      <SelectCSV
+        label="Work"
+        csvFileName="passage"
+        csvColumn="label"
+        id="work"
+      />
     </fieldset>
     <fieldset>
       <legend>presentation</legend>
@@ -124,64 +125,53 @@ import Input from "@src/components/Input.astro"
         id="order-by"
         values={["keyword", "ctx_left", "ctx_right"]}
       />
-      <Input label="Aligned" type="checkbox" value="checked" />
+      <!-- <Input label="Aligned" id="aligned" type="checkbox" value="checked" /> -->
     </fieldset>
-    <div id="buttons">
-      <button id="submit" onclick="updateKWIC()">
-        submit
-      </button>
-      <button id="reset" onclick="reset()">
-        reset
-      </button>
+    <div>
+      <button id="button-submit">submit</button>
+      <button id="button-reset">reset</button>
     </div>
-    <!-- TODO: reset -->
   </div>
 
-  <table id="kwic">
-    <colgroup>
-      <col style="width:45%" />
-      <col style="width:10%" />
-      <col style="width:45%" />
-    </colgroup>
-    <tbody id="kwic-tbody"></tbody>
-  </table>
+  <div id="kwic"></div>
 
-  <script is:inline>
-    const ROOT = "https://humility.lod4hss.org"
-    const BASE_URI = `${ROOT}/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F`
+  <script>
+    import alasql from "alasql"
+    import createElement from "@js/util.ts"
+    import { BASE_URI } from "@js/util.ts"
 
-    const tbody = document.getElementById("kwic-tbody")
+    const kwic = document.getElementById("kwic")
+    if (!kwic) console.error("no element with id `kwic`")
 
-    /* helper function to create an element and set its attributes.
-     * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
-     * */
-    function createElement(tag, attrs, callback) {
-      const elem = document.createElement(tag)
-      if (attrs)
-        Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))
-      if (callback) callback(elem)
-      return elem
+    type ParamElement = HTMLSelectElement | HTMLInputElement
+    type Row = {
+      passage_uri: string
+      ctx_left: string
+      keyword: string
+      ctx_right: string
     }
 
     const ids = [
-      "select-lemma-pos",
-      "select-word-dep",
+      "pos",
+      "dep",
       "lemma",
       "hypernym",
-      "select-chunk-type",
-      "select-passage-lang",
-      "select-passage-label",
+      "type",
+      "lang",
+      "work",
       "year-start",
       "year-end",
     ]
 
     function reset() {
       ids.forEach((id) => {
-        const elem = document.getElementById(id)
-        if (!elem) console.error(`id not found: ${i}`)
-        if (elem.tagName.toLowerCase() == "select") {
-          elem.value = elem.childNodes[0].value
-        } else elem.value = elem["data-default"] || ""
+        const elem = document.getElementById(id) as ParamElement
+        if (!elem) console.error(`id not found: ${id}`)
+        else {
+          if (elem.tagName.toLowerCase() == "select") {
+            elem.value = (elem?.childNodes[0] as HTMLOptionElement).value
+          } else elem.value = elem["data-default"] || ""
+        }
       })
     }
 
@@ -189,7 +179,8 @@ import Input from "@src/components/Input.astro"
     function getQueryParams() {
       const params = []
       for (let i of ids) {
-        const elem = document.getElementById(i)
+        const elem = document.getElementById(i) as
+          HTMLSelectElement | HTMLInputElement
         if (!elem) console.error(`id not found: ${i}`)
         const value = (elem.value || "").trim()
         params.push(value)
@@ -199,9 +190,11 @@ import Input from "@src/components/Input.astro"
     }
 
     /* run the select KWIC query using user-defined parameters. */
-    function runQuery() {
+    function runQuery(): Array<Row> {
       const params = getQueryParams()
-      const orderBy = document.getElementById("order-by").value
+      const orderBy =
+        (document.getElementById("order-by") as HTMLSelectElement).value ||
+        "keyword"
       return alasql(
         `
 WITH w AS (
@@ -215,7 +208,7 @@ WITH w AS (
     JOIN passage ON passage.uri = chunk.passage_uri
   WHERE (? = '' OR lemma.pos = ?)
     AND (? = '' OR word.dep = ?)
-    AND (? = '' OR lemma.lemma LIKE '%' + ? + '%')
+    AND (? = '' OR lemma.lemma = ?)
     AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
     AND (? = '' OR chunk.type = ?)
     AND (? = '' OR passage.lang = ?)
@@ -230,62 +223,60 @@ SELECT
   substring(chunk.text, w.idx + w.len) AS ctx_right
   FROM w
   JOIN chunk ON chunk.id = w.chunk
-  ORDER BY ${orderBy}, keyword, ctx_left, ctx_right
-`,
+  ORDER BY ${orderBy}, keyword, ctx_left, ctx_right`,
         params
       )
     }
 
     /* update the KWIC table. */
-    function updateKWIC() {
+    function update() {
       console.time("query")
       const result = runQuery()
       console.timeEnd("query")
-      console.time("update")
-      tbody.innerHTML = ""
+      if (!kwic) return
+      kwic.innerHTML = ""
       result.forEach((i) => {
-        const tr = createElement("tr")
+        const row = createElement("div", { className: "row" })
         for (let j of ["ctx_left", "keyword", "ctx_right"]) {
-          const td = createElement("td", { className: j })
-          td.append(
+          const span = createElement("span", { className: j })
+          console.log(i)
+          span.append(
             createElement("a", {
               textContent: i[j],
               href: `${BASE_URI}${i.passage_uri}`,
             })
           )
-          tr.append(td)
+          row.append(span)
         }
-        tbody.append(tr)
+        kwic.append(row)
       })
-      console.timeEnd("update")
     }
 
     /* create tables from CSV files.
      * this is the slowest part of the module. but we cannot really change this.
      * however, we only load data once, so it's fine for now.
      * */
-    console.time("csv")
+    console.time("tables")
     for (let i of ["lemma", "word", "chunk", "passage"]) {
-      alasql.promise(
-        `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
+      await alasql.promise(
+        `CREATE TABLE ${i}; SELECT * INTO ${i} FROM csv(?, {separator:","})`,
         [`/data/${i}.csv`]
       )
     }
-    console.timeEnd("csv")
+    console.timeEnd("tables")
 
-    /* create indexes.
-     * i don't know if it's really more efficient, but it's quick.
-     * */
-    console.time("index")
-    const indexes = {
-      word: ["string", "lemma", "synset"],
-      lemma: ["id", "pos"],
-      chunk: ["id", "passage_uri", "type"],
-      passage: ["uri"],
+    /* extract url query parameters, e.g.: `.../kwic?hypernym=body_part` */
+    const params = new URLSearchParams(document.location.search)
+    for (let id of ids) {
+      const value = params.get(id)
+      if (value) (document.getElementById(id) as HTMLInputElement).value = value
     }
-    Object.entries(indexes).forEach(([t, cols]) => {
-      cols.forEach((c) => alasql(`create index index_${t}_${c} on ${t} (${c})`))
-    })
-    console.timeEnd("index")
+
+    /* fill the kwic */
+    update()
+
+    /* bind buttons to functions */
+    document.getElementById("button-submit")?.addEventListener("click", update)
+    document.getElementById("button-reset")?.addEventListener("click", reset)
   </script>
 </Main>
