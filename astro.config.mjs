@@ -7,4 +7,7 @@ export default defineConfig({
   base: "/",
   outDir: "docs",
   publicDir: "public",
+  build: {
+    assets: "astro",
+  },
 })
