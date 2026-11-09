@@ -70,6 +70,7 @@ import Main from "@layouts/Main.astro"
   <script>
     import alasql from "alasql"
     import * as d3 from "d3"
+    import "d3-transition"
     import createElement from "@js/util.ts"
 
     const dataTree = await d3.json("/data/taxonomy.json")
