@@ -1,0 +1,20 @@
+---
+/* Filter parameters for Passages, Expressions, Works... */
+import Input from "./Input.astro"
+import SelectCSV from "./SelectCSV.astro"
+import FilterParams from "./FilterParams.astro"
+// TODO: include/exclude options?
+---
+
+<FilterParams legend="work">
+  <SelectCSV
+    label="Language"
+    id="lang"
+    csvFileName="passage"
+    csvColumn="lang"
+  />
+  <Input label="Year (start)" id="year-start" />
+  <Input label="Year (end)" id="year-end" />
+  <SelectCSV label="Work" csvFileName="passage" csvColumn="label" id="work" />
+  <slot />
+</FilterParams>

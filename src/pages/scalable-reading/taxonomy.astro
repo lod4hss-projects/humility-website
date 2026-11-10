@@ -69,18 +69,17 @@ import Main from "@layouts/Main.astro"
 
   <script>
     import alasql from "alasql"
+    // we import `d3-transition` as well as `d3` to avoid 'not a function' error.
+    // https://github.com/d3/d3-selection/issues/185
     import * as d3 from "d3"
     import "d3-transition"
-    import createElement from "@js/util.ts"
+
+    import { csvToTable } from "@js/sql"
+    import { createElement } from "@js/util.ts"
 
     const dataTree = await d3.json("/data/taxonomy.json")
 
-    for (let i of ["chunk", "word", "lemma"]) {
-      await alasql.promise(
-        `create table ${i}; select * into ${i} from csv(?, {separator:","})`,
-        [`/data/${i}.csv`]
-      )
-    }
+    for (let i of ["chunk", "word", "lemma"]) csvToTable(i)
 
     await alasql.promise(
       `

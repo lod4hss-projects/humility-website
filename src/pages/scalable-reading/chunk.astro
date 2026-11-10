@@ -1,18 +1,22 @@
 ---
-import Main from "@layouts/Main.astro"
 const title = "Chunks Table"
+
+import Main from "@layouts/Main.astro"
+import WorkParams from "@components/WorkParams.astro"
+import ChunkParams from "@components/ChunkParams.astro"
+import Submit from "@components/Submit.astro"
 ---
 
 <Main {title}>
   <style is:global>
     .text a,
-    .concept a {
+    .idea a {
       text-decoration: underline;
       color: inherit;
       text-decoration-color: #aaa;
     }
     .text a:hover,
-    .concept a:hover {
+    .idea a:hover {
       background-color: #eee;
     }
     .passage_uri a {
@@ -32,6 +36,7 @@ const title = "Chunks Table"
     th {
       text-align: left;
       border-bottom: 1px solid black;
+      border-top: 1px solid black;
       background-color: #def;
       padding: 0.4em;
       font-weight: normal;
@@ -42,9 +47,21 @@ const title = "Chunks Table"
     }
   </style>
 
-  <div><!-- TODO: heading and small text to present what we're reading --></div>
-  <div><!-- TODO: ordering and filtering --></div>
+  <!-- Document the page -->
+  <div>
+    <h1>Chunks</h1>
+  </div>
 
+  <!-- User-defined filters -->
+  <div>
+    <ChunkParams />
+    <WorkParams />
+  </div>
+
+  <Submit />
+
+  <!-- The chunks table -->
+  <!-- TODO: this could be a generic component -->
   <table>
     <colgroup>
       <col width="60%" />
@@ -55,7 +72,7 @@ const title = "Chunks Table"
     <thead>
       <tr>
         <th>Text</th>
-        <th>Concept</th>
+        <th>Idea</th>
         <th>Type</th>
         <th>Passage</th>
       </tr>
@@ -64,37 +81,65 @@ const title = "Chunks Table"
   </table>
 
   <script>
-    import * as d3 from "d3"
-    import createElement from "@js/util"
-    import { BASE_URI } from "@js/util.ts"
-    const tb = document.getElementById("tb")
-    if (!tb) console.error("element 'tb' not found")
-    else
-      d3.csv("/data/chunk_lemma.csv").then((data) => {
-        data.forEach((i) => {
-          const tr = createElement("tr", {})
-          for (let j of ["text", "concept"]) {
-            const td = createElement("td", { className: j, innerHTML: i[j] })
-            for (let a of td.children) {
-              const typeName = j == "text" ? "text" : "idea"
-              const lemma =
-                a.getAttribute("data-lemma") || a.textContent.toLowerCase()
-              const href = `/scalable-reading/kwic?lemma=${lemma}&type=${typeName}`
-              a.setAttribute("href", href)
-            }
-            tr.append(td)
-          }
-          tr.append(createElement("td", { textContent: i.type }))
-          const tdPassage = createElement("td", { className: "passage_uri" })
-          tdPassage.append(
-            createElement("a", {
-              href: `${BASE_URI}${i.passage_uri}`,
-              textContent: i.passage_uri,
-            })
+    import alasql from "alasql"
+
+    import { createElement, BASE_URI } from "@js/util"
+    import { csvToTable, getFilterParams } from "@js/sql"
+
+    for (let i of ["chunk_lemma", "passage"]) await csvToTable(i)
+
+    function update() {
+      const tb = document.getElementById("tb")
+      if (!tb) console.error("element 'tb' not found")
+      else
+        alasql
+          .promise(
+            `SELECT c.*
+            FROM chunk_lemma AS c
+            JOIN passage p ON p.uri = c.passage_uri
+            WHERE ($chunk_type = '' OR c.type = $chunk_type)
+            AND ($work = '' OR p.work = $work)
+            AND ($lang = '' OR p.lang = $lang)
+            AND ($year_start = '' OR p.year_start > $year_start)
+            AND ($year_end = '' OR p.year_end > $year_end)
+            `,
+            getFilterParams()
           )
-          tr.append(tdPassage)
-          tb.append(tr)
-        })
-      })
+          .then((data) => {
+            tb.innerHTML = ""
+            data.forEach((i) => {
+              const tr = createElement("tr", {})
+              for (let j of ["text", "idea"]) {
+                const td = createElement("td", {
+                  className: j,
+                  innerHTML: i[j],
+                })
+                for (let a of td.children) {
+                  const lemma =
+                    a.getAttribute("data-lemma") || a.textContent.toLowerCase()
+                  const href = `/scalable-reading/kwic?lemma=${lemma}&property=${j}`
+                  a.setAttribute("href", href)
+                }
+                tr.append(td)
+              }
+              tr.append(createElement("td", { textContent: i.type }))
+              const tdPassage = createElement("td", {
+                className: "passage_uri",
+              })
+              tdPassage.append(
+                createElement("a", {
+                  href: `${BASE_URI}${i.passage_uri}`,
+                  textContent: i.passage_uri,
+                })
+              )
+              tr.append(tdPassage)
+              tb.append(tr)
+            })
+          })
+    }
+
+    update()
+
+    document.getElementById("button-submit")?.addEventListener("click", update)
   </script>
 </Main>

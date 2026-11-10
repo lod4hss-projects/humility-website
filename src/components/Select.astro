@@ -21,7 +21,7 @@ const { label, id, values } = Astro.props
 
 <div>
   <label for={id}>{label}:</label>
-  <select {id}>
+  <select {id} class="filter-param">
     {values.map((i) => (
       <option value={i}>{i}</option>
     ))}

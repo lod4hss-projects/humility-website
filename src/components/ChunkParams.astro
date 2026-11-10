@@ -1,0 +1,14 @@
+---
+import SelectCSV from "./SelectCSV.astro"
+import FilterParams from "./FilterParams.astro"
+---
+
+<FilterParams legend="chunk">
+  <SelectCSV
+    label="Type"
+    id="chunk-type"
+    csvFileName="chunk"
+    csvColumn="type"
+  />
+  <slot />
+</FilterParams>

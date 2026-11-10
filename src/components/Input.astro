@@ -17,6 +17,21 @@ const { label, id, type = "text", placeholder = "", value = "" } = Astro.props
 <div>
   <label for={id}>{label}:</label>
   {(value == "checked" && type == "checkbox" && (
-    <input {id} type="checkbox" checked data-default={value} />
-  )) || <input {id} {type} {placeholder} {value} data-default={value || ""} />}
+    <input
+      {id}
+      type="checkbox"
+      checked
+      data-default={value}
+      class="filter-param"
+    />
+  )) || (
+    <input
+      {id}
+      {type}
+      {placeholder}
+      {value}
+      data-default={value || ""}
+      class="filter-param"
+    />
+  )}
 </div>

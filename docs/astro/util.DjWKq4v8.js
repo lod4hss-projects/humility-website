@@ -1,1 +1,0 @@
-function e(e,t){let n=document.createElement(e);return t&&Object.entries(t).forEach(([e,t])=>n[e]=t),n}var t=`https://humility.lod4hss.org/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F`;export{e as n,t};

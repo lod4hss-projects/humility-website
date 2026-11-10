@@ -1,7 +1,7 @@
 /* helper function to create an element and set its attributes.
  * it's mostly there to enable one-liner: `div.append(createElement(tag, {id: id}))`
  * */
-export default function createElement(tag: string, attrs: object | null) {
+export function createElement(tag: string, attrs: object | null) {
   const elem = document.createElement(tag)
   if (attrs)
     Object.entries(attrs).forEach(([key, value]) => (elem[key] = value))

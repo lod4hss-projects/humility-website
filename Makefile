@@ -35,7 +35,7 @@ install:
 	npm install
 
 dev: $(objs)
-	npx astro dev
+	npx astro dev --open
 
 public/data/%.csv: src/sparql/%.rq
 	@mkdir -p $(@D)

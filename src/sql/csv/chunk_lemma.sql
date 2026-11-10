@@ -43,10 +43,10 @@ select
     c.passage_uri,
     c.type,
     s1.tokens::xml::text as text,
-    s2.tokens::xml::text as concept
+    s2.tokens::xml::text as idea
 from
     chunk_ c
     join s s1 on s1.string = c.text_id
-    join s s2 on s2.string = c.concept_id
+    join s s2 on s2.string = c.idea_id
 order by
     c.passage_uri;

@@ -1,70 +1,49 @@
 ---
-import Main from "@layouts/Main.astro"
-import SelectCSV from "@src/components/SelectCSV.astro"
-import Select from "@src/components/Select.astro"
-import Input from "@src/components/Input.astro"
 const title = "Keyword in context"
+const description = "Keyword in context for the humility project."
+const keywords = "keyword, textometry, scalable reading, humility, comparison"
+
+import Main from "@layouts/Main.astro"
+import Select from "@src/components/Select.astro"
+import Submit from "@src/components/Submit.astro"
+import WordPropertyParams from "@src/components/WordPropertyParams.astro"
+import WorkParams from "@src/components/WorkParams.astro"
+import ChunkParams from "@src/components/ChunkParams.astro"
+import FilterParams from "@src/components/FilterParams.astro"
 ---
 
-<Main
-  {title}
-  description="Keyword in context for the humility project."
-  keywords="keyword, textometry, scalable reading, humility, comparison"
->
+<Main {title} {description} {keywords}>
   <style>
-    fieldset {
-      border: 1px solid black;
-    }
-    legend {
-      font-size: 0.8em;
-    }
-    div {
-      margin: 1em;
-    }
-    button {
-      border: 2px solid #04f;
-      background-color: #fff;
-      padding: 5px;
-      margin: 1em;
-      text-decoration: none;
-      cursor: pointer;
-      color: #04f;
-      font-weight: bold;
-    }
-    button:hover {
-      background-color: #04f;
-      color: white;
-    }
-    select {
-      max-width: 100%;
-    }
+    /* Non-global styling for element built there. */
     h1 {
       padding: 0 0.5em;
     }
   </style>
   <style is:global>
-    a {
-      text-decoration: none;
-      color: inherit;
-    }
+    /* Global styling for what's created from within the <script>.
+    * Astro doesn't see these elements, that's why we need `is:global`. */
     #kwic {
       padding: 0;
       margin: 0;
     }
-    .row {
+    #kwic a {
+      text-decoration: none;
+      color: inherit;
+    }
+    #kwic .row {
       width: 100%;
       overflow: hidden;
       white-space: nowrap;
       padding: 0;
       margin: 0;
     }
-    .ctx_right {
+    #kwic .ctx_right {
     }
-    .keyword {
+    #kwic .keyword {
       font-weight: bold;
       margin: 0 4pt;
     }
-    .ctx_left {
+    #kwic .ctx_left {
       display: inline-block;
       width: 48%;
       vertical-align: center;
@@ -76,73 +55,49 @@ const title = "Keyword in context"
   </style>
   <h1>{title}</h1>
 
+  <!-- Filters -->
   <div id="query">
-    <fieldset>
-      <legend>word properties</legend>
-      <SelectCSV
-        label="Dependency label"
-        id="dep"
-        csvFileName="word"
-        csvColumn="dep"
-      />
-      <SelectCSV
-        label="Part of speech"
-        id="pos"
-        csvFileName="lemma"
-        csvColumn="pos"
-      />
-      <Input label="Hypernym" id="hypernym" />
-      <Input label="Lemma" id="lemma" />
-    </fieldset>
-    <fieldset>
-      <legend>corpus</legend>
-      <SelectCSV
-        label="Text type"
-        csvFileName="chunk"
-        csvColumn="type"
-        id="type"
+    <!-- Token/Word/Lemma properties -->
+    <WordPropertyParams />
+    <!-- Chunk properties -->
+    <ChunkParams>
+      <!-- We add a filter 'type' in corpus (text or idea) -->
+      <Select
+        label="Text property"
+        values={["text", "idea"]}
+        id="property"
         empty={false}
       />
-      <SelectCSV
-        label="Language"
-        id="lang"
-        csvFileName="passage"
-        csvColumn="lang"
-      />
-      <Input label="Year (start)" id="year-start" />
-      <Input label="Year (end)" id="year-end" />
-      <SelectCSV
-        label="Work"
-        csvFileName="passage"
-        csvColumn="label"
-        id="work"
-      />
-    </fieldset>
-    <fieldset>
+    </ChunkParams>
+    <!-- Work/Expression properties -->
+    <WorkParams />
+    <!-- Presentation filter specific for KWIC -->
+    <FilterParams legend="presentation">
       <legend>presentation</legend>
       <Select
         label="Order by"
         id="order-by"
         values={["keyword", "ctx_left", "ctx_right"]}
       />
-    </fieldset>
-    <div>
-      <button id="button-submit">submit</button>
-      <button id="button-reset">reset</button>
-    </div>
+    </FilterParams>
+    <Submit />
   </div>
 
+  <!-- The KWIC is dynamically created here. -->
   <div id="kwic"></div>
 
   <script>
+    /* (Astro generate imports in <head> from these imports.) */
     import alasql from "alasql"
-    import createElement from "@js/util.ts"
-    import { BASE_URI } from "@js/util.ts"
+    import { createElement, BASE_URI } from "@js/util"
+    // TODO: use `getFilterParams` and named parameters
+    import { csvToTable, getFilterParams } from "@js/sql"
 
     const kwic = document.getElementById("kwic")
     if (!kwic) console.error("no element with id `kwic`")
 
     type ParamElement = HTMLSelectElement | HTMLInputElement
+
     type Row = {
       passage_uri: string
       ctx_left: string
@@ -155,7 +110,8 @@ const title = "Keyword in context"
       "dep",
       "lemma",
       "hypernym",
-      "type",
+      "chunk-type",
+      "property",
       "lang",
       "work",
       "year-start",
@@ -210,6 +166,7 @@ WITH w AS (
     AND (? = '' OR lemma.lemma = ?)
     AND (? = '' OR lemma.hypernym_path LIKE '%' + ? + '%')
     AND (? = '' OR chunk.type = ?)
+    AND (? = '' OR chunk.property = ?)
     AND (? = '' OR passage.lang = ?)
     AND (? = '' OR passage.label = ?)
     AND (? = '' OR (passage.year IS NOT NULL AND passage.year >= ?))
@@ -254,14 +211,7 @@ SELECT
      * this is the slowest part of the module. but we cannot really change this.
      * however, we only load data once, so it's fine for now.
      * */
-    console.time("tables")
-    for (let i of ["lemma", "word", "chunk", "passage"]) {
-      await alasql.promise(
-        `CREATE TABLE ${i}; SELECT * INTO ${i} FROM csv(?, {separator:","})`,
-        [`/data/${i}.csv`]
-      )
-    }
-    console.timeEnd("tables")
+    for (let i of ["lemma", "word", "chunk", "passage"]) await csvToTable(i)
 
     /* extract url query parameters, e.g.: `.../kwic?hypernym=body_part` */
     const params = new URLSearchParams(document.location.search)

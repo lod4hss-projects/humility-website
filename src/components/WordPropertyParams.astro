@@ -1,0 +1,26 @@
+---
+/* Filter parameters for Word, Lemmas... */
+import Input from "./Input.astro"
+import SelectCSV from "./SelectCSV.astro"
+import FilterParams from "./FilterParams.astro"
+// TODO: include/exclude options?
+---
+
+<FilterParams legend="word properties">
+  <slot name="before" />
+  <SelectCSV
+    label="Dependency label"
+    id="dep"
+    csvFileName="word"
+    csvColumn="dep"
+  />
+  <SelectCSV
+    label="Part of speech"
+    id="pos"
+    csvFileName="lemma"
+    csvColumn="pos"
+  />
+  <Input label="Hypernym" id="hypernym" />
+  <Input label="Lemma" id="lemma" />
+  <slot />
+</FilterParams>

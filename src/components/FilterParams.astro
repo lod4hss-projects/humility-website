@@ -1,0 +1,18 @@
+---
+const { legend } = Astro.props
+---
+
+<style>
+  fieldset {
+    border: 1px solid black;
+    margin: 1em;
+  }
+  legend {
+    font-size: 0.8em;
+  }
+</style>
+
+<fieldset class="filter-params">
+  <legend>{legend}</legend>
+  <slot />
+</fieldset>
