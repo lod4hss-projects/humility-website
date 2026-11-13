@@ -2,7 +2,7 @@ select
     uri,
     lang,
     year,
-    label,
+    label as work_label,
     work
 from
     passage_;

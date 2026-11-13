@@ -3,7 +3,7 @@ PREFIX hum: <https://humility.lod4hss.cloud/resource/>
 PREFIX lrmoo: <http://iflastandards.info/ns/lrm/lrmoo/>
 PREFIX sdh-short: <https://sdhss.org/ontology/shortcuts/>
 
-SELECT DISTINCT ?text ?source ?source_label ?lang ?crea_year ?text_string ?trad_string
+SELECT DISTINCT ?text ?work_label ?lang ?crea_year ?text_string ?trad_string
 WHERE {
   GRAPH hum: {
     # excerpts
@@ -43,10 +43,6 @@ WHERE {
         ?crea sdh-short:P8 ?crea_year_p8 .
       }
     }
-    BIND (COALESCE(?work, ?expr) AS ?source)
-    # idem for source label
-    BIND (COALESCE(?work_label, ?expr_label) AS ?source_label)
-    # use any available year
     BIND (COALESCE(?crea_year_p1, ?crea_year_p3, ?crea_year_p8) AS ?crea_year)
     FILTER (?text != hum:6a4b69949d774) # exclude test
   }

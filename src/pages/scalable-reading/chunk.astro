@@ -9,44 +9,22 @@ import Submit from "@components/Submit.astro"
 
 <Main {title}>
   <style is:global>
-    .text a,
-    .idea a {
+    tr:hover td {
+      background-color: #f8f8f8;
+    }
+    a {
       text-decoration: underline;
       color: inherit;
       text-decoration-color: #aaa;
     }
-    .text a:hover,
-    .idea a:hover {
+    a:hover {
       background-color: #eee;
     }
-    .passage_uri a {
+    a.passage-uri {
       text-decoration: none;
       color: #04d;
     }
-    .passage_uri a:hover {
-      text-decoration: underline;
-    }
-    tr:hover {
-      background-color: #eee;
-    }
-    td {
-      border-top: 1px solid #ccc;
-      padding: 0.6em;
-    }
-    th {
-      text-align: left;
-      border-bottom: 1px solid black;
-      border-top: 1px solid black;
-      background-color: #def;
-      padding: 0.4em;
-      font-weight: normal;
-      font-size: 1.3em;
-    }
-    table {
-      border-collapse: collapse;
-    }
   </style>
-
   <!-- Document the page -->
   <div>
     <h1>Chunks</h1>
@@ -61,85 +39,103 @@ import Submit from "@components/Submit.astro"
   <Submit />
 
   <!-- The chunks table -->
-  <!-- TODO: this could be a generic component -->
-  <table>
-    <colgroup>
-      <col width="60%" />
-      <col width="30%" />
-      <col width="5%" />
-      <col width="10%" />
-    </colgroup>
-    <thead>
-      <tr>
-        <th>Text</th>
-        <th>Idea</th>
-        <th>Type</th>
-        <th>Passage</th>
-      </tr>
-    </thead>
-    <tbody id="tb"></tbody>
-  </table>
+  <table id="tbl"></table>
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css"
+  />
+  <script
+    is:inline
+    src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"
+  ></script>
 
   <script>
     import alasql from "alasql"
-
     import { createElement, BASE_URI } from "@js/util"
-    import { csvToTable, getFilterParams } from "@js/sql"
+    import { csvToTable, getFilterParams, resetFilters } from "@js/sql"
 
     for (let i of ["chunk_lemma", "passage"]) await csvToTable(i)
 
-    function update() {
-      const tb = document.getElementById("tb")
-      if (!tb) console.error("element 'tb' not found")
-      else
-        alasql
-          .promise(
-            `SELECT c.*
+    function getData() {
+      return alasql(
+        `SELECT c.text, c.idea, c.type, p.lang, p.year, p.work_label, p.uri
+      FROM chunk_lemma AS c
+      JOIN passage p ON p.uri = c.passage_uri
+      `
+      )
+    }
+
+    function setPassageUri(data: string) {
+      return createElement("a", {
+        className: "passage-uri",
+        href: `${BASE_URI}${data}`,
+        textContent: data,
+      }).outerHTML
+    }
+
+    function updateTextLinks(data: string, property: string) {
+      const frag = createElement("div", { innerHTML: data })
+      for (let a of frag.children) {
+        const lemma =
+          a.getAttribute("data-lemma") || a.textContent.toLowerCase()
+        const href = `/scalable-reading/kwic?lemma=${lemma}&property=${property}`
+        a.setAttribute("href", href)
+      }
+      return frag.innerHTML
+    }
+
+    const tb = new DataTable("#tbl", {
+      data: getData(),
+      columns: [
+        {
+          data: "text",
+          title: "text",
+          render: (data: string) => updateTextLinks(data, "text"),
+        },
+        {
+          data: "idea",
+          title: "idea",
+          render: (data: string) => updateTextLinks(data, "idea"),
+        },
+        { data: "type", title: "type" },
+        { data: "year", title: "year" },
+        { data: "lang", title: "language" },
+        { data: "work_label", title: "work" },
+        { data: "uri", title: "passage", render: setPassageUri },
+      ],
+    })
+
+    function makeTable() {
+      alasql
+        .promise(
+          `SELECT c.text, c.idea, c.type, p.lang, p.year, p.work_label, p.uri
             FROM chunk_lemma AS c
             JOIN passage p ON p.uri = c.passage_uri
             WHERE ($chunk_type = '' OR c.type = $chunk_type)
-            AND ($work = '' OR p.work = $work)
+            AND ($work = '' OR p.work_label = $work)
             AND ($lang = '' OR p.lang = $lang)
-            AND ($year_start = '' OR p.year_start > $year_start)
-            AND ($year_end = '' OR p.year_end > $year_end)
+            AND ($year_start = '' OR p.year >= $year_start)
+            AND ($year_end = '' OR p.year <= $year_end)
             `,
-            getFilterParams()
-          )
-          .then((data) => {
-            tb.innerHTML = ""
-            data.forEach((i) => {
-              const tr = createElement("tr", {})
-              for (let j of ["text", "idea"]) {
-                const td = createElement("td", {
-                  className: j,
-                  innerHTML: i[j],
-                })
-                for (let a of td.children) {
-                  const lemma =
-                    a.getAttribute("data-lemma") || a.textContent.toLowerCase()
-                  const href = `/scalable-reading/kwic?lemma=${lemma}&property=${j}`
-                  a.setAttribute("href", href)
-                }
-                tr.append(td)
-              }
-              tr.append(createElement("td", { textContent: i.type }))
-              const tdPassage = createElement("td", {
-                className: "passage_uri",
-              })
-              tdPassage.append(
-                createElement("a", {
-                  href: `${BASE_URI}${i.passage_uri}`,
-                  textContent: i.passage_uri,
-                })
-              )
-              tr.append(tdPassage)
-              tb.append(tr)
-            })
-          })
+          getFilterParams()
+        )
+        .then((data) => {
+          tb.clear()
+          tb.rows.add(data)
+          tb.draw()
+        })
     }
 
-    update()
+    makeTable()
 
-    document.getElementById("button-submit")?.addEventListener("click", update)
+    document
+      .getElementById("button-submit")
+      ?.addEventListener("click", makeTable)
+
+    document.getElementById("button-reset")?.addEventListener("click", () => {
+      resetFilters()
+      makeTable()
+    })
   </script>
 </Main>

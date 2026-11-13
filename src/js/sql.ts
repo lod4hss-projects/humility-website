@@ -22,3 +22,12 @@ export function getFilterParams() {
   console.log(params)
   return params
 }
+
+export function resetFilters() {
+  const filterParams = document.getElementsByClassName("filter-param")
+  for (let elem of filterParams) {
+    if (elem.tagName.toLowerCase() == "select") {
+      elem.value = (elem?.childNodes[0] as HTMLOptionElement).value
+    } else elem.value = elem["data-default"] || ""
+  }
+}

@@ -1,6 +1,5 @@
 ---
-const { title, author, description, keywords, stylesheets, ...props } =
-  Astro.props
+const { title, author, description, keywords, stylesheets } = Astro.props
 import Main from "@layouts/Main.astro"
 ---
 
@@ -18,9 +17,6 @@ import Main from "@layouts/Main.astro"
   }
   a:hover {
     text-decoration: underline;
-  }
-  ul li {
-    list-style-type: "⮚ ";
   }
 </style>
 
