@@ -162,9 +162,9 @@ const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
     <div class="dashboard">
       <div class="table-section">
         <div class="table-header">
-          <h3 style="margin:0;">Associated Chunks</h3>
+          <h3 style="margin:0;">Proposed Chunks</h3>
         </div>
-        <table id="associated-chunks" />
+        <table id="chunk-table" />
       </div>
     </div>
 
@@ -172,9 +172,9 @@ const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
     <div class="dashboard">
       <div class="table-section">
         <div class="table-header">
-          <h3 style="margin:0;">Proposed Chunks</h3>
+          <h3 style="margin:0;">Associated Chunks</h3>
         </div>
-        <table id="chunk-table" />
+        <table id="associated-chunks" />
       </div>
     </div>
 
@@ -326,8 +326,8 @@ const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
 
         // Render Bottom Links
         finalLinksDiv.innerHTML = `
-          <span><a href="./chunk-table.html">← Back to chunks' list</a></span>
-          <span><a href="./instance-page.html?uri=${encodeURIComponent(textUriGlobal)}" target="_blank">View Text Triples</a></span>
+          <span><a href="../chunk-table.html">← Back to chunks' list</a></span>
+          <span><a href="../instance-page.html?uri=${encodeURIComponent(textUriGlobal)}" target="_blank">View Text Triples</a></span>
         `
       } catch (err) {
         document.getElementById("entity-header").innerHTML =
