@@ -13,13 +13,18 @@
   }
   span {
     margin-left: 0.4em;
+    display: inline-block;
   }
 </style>
 
 <div>
   <span>Year</span>
-  <label for="year-start">from</label>
-  <input type="number" id="year-start" class="filter-param" />
-  <label for="year-end">to</label>
-  <input type="number" id="year-end" class="filter-param" />
+  <span>
+    <label for="year-start">from</label>
+    <input type="number" id="year-start" class="filter-param" />
+  </span>
+  <span>
+    <label for="year-end">to</label>
+    <input type="number" id="year-end" class="filter-param" />
+  </span>
 </div>
