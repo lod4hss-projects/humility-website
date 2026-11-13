@@ -38,8 +38,8 @@ import{a as e,i as t,o as n,t as r}from"./sql.C22JFWHe.js";var i=n(e(),1);for(le
             </tbody>
           </table>
         `;document.getElementById(`entity-header`).innerHTML=r,g.innerHTML=`
-          <span><a href="./chunk-table.html">← Back to chunks' list</a></span>
-          <span><a href="./instance-page.html?uri=${encodeURIComponent(p)}" target="_blank">View Text Triples</a></span>
+          <span><a href="../chunk-table.html">← Back to chunks' list</a></span>
+          <span><a href="../instance-page.html?uri=${encodeURIComponent(p)}" target="_blank">View Text Triples</a></span>
         `}catch(e){document.getElementById(`entity-header`).innerHTML=`<p style="color:red">Error loading header: ${e.message}</p>`}}async function v(){let e=`
         SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
               (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
@@ -68,4 +68,4 @@ import{a as e,i as t,o as n,t as r}from"./sql.C22JFWHe.js";var i=n(e(),1);for(le
         GROUP BY ?textUri ?chunkUri
         ORDER BY ?chunkUri
         LIMIT 500
-      `;try{let t=await fetch(l+`?query=`+encodeURIComponent(e),{headers:{Accept:`application/sparql-results+json`}});if(!t.ok)throw Error(`SPARQL error: ${t.status}`);h=(await t.json()).results.bindings.map(e=>{for(let t of[`chunkText`,`textUri`,`concepts`,`conceptClasses`,`chunkUri`])e[t]=e[t]?.value||``;return e}),new DataTable(`#associated-chunks`,{data:h,searching:!1,paging:!1,bInfo:!1,columns:[{data:`chunkText`,title:`Chunk Content`,render:(e,t,n)=>(n.chunkUri&&n.chunkUri.startsWith(`http`)&&(e=`<a href="${n.chunkUri.startsWith(`https://humility.lod4hss.cloud/resource/`)?`./instance-page.html?uri=${encodeURIComponent(n.chunkUri)}`:n.chunkUri}" target="_blank">${n.chunkText}</a>`),e)},{data:`concepts`,title:`Concepts`},{data:`conceptClasses`,title:`Concept Classes`}]}),console.log(c),s(`6a4cebebe6e05`)}catch(e){console.error(e)}}(async()=>{await _(),await v()})();
+      `;try{let t=await fetch(l+`?query=`+encodeURIComponent(e),{headers:{Accept:`application/sparql-results+json`}});if(!t.ok)throw Error(`SPARQL error: ${t.status}`);h=(await t.json()).results.bindings.map(e=>{for(let t of[`chunkText`,`textUri`,`concepts`,`conceptClasses`,`chunkUri`])e[t]=e[t]?.value||``;return e}),new DataTable(`#associated-chunks`,{data:h,searching:!1,paging:!1,bInfo:!1,columns:[{data:`chunkText`,title:`Chunk Content`,render:(e,t,n)=>(n.chunkUri&&n.chunkUri.startsWith(`http`)&&(e=`<a href="${n.chunkUri.startsWith(`https://humility.lod4hss.cloud/resource/`)?`./instance-page.html?uri=${encodeURIComponent(n.chunkUri)}`:n.chunkUri}" target="_blank">${n.chunkText}</a>`),e)},{data:`concepts`,title:`Concepts`},{data:`conceptClasses`,title:`Concept Classes`}]}),c&&s(c.split(`/`).reverse()[0])}catch(e){console.error(e)}}(async()=>{await _(),await v()})();

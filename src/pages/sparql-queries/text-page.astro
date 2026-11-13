@@ -416,8 +416,7 @@ const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
           ],
         })
 
-        console.log(uri)
-        makeChunkTable("6a4cebebe6e05")
+        if (uri) makeChunkTable(uri.split("/").reverse()[0])
       } catch (err) {
         console.error(err)
       }
