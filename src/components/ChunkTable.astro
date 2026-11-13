@@ -28,7 +28,7 @@ const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
 <script>
   import alasql from "alasql"
   import { createElement, BASE_URI } from "@js/util"
-  import { csvToTable, getFilterParams } from "@js/sql"
+  import { csvToTable, getFilterParams, resetFilters } from "@js/sql"
 
   for (let i of ["chunk_lemma", "passage"]) await csvToTable(i)
 
@@ -102,4 +102,12 @@ const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
   }
 
   makeChunkTable()
+
+  document
+    .getElementById("button-submit")
+    ?.addEventListener("click", makeChunkTable)
+  document.getElementById("button-reset")?.addEventListener("click", () => {
+    resetFilters()
+    makeChunkTable()
+  })
 </script>
