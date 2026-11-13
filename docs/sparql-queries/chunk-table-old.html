@@ -122,7 +122,7 @@
         `<tr><td>${escapeHtml(row.name)}</td>
          <td>${escapeHtml(row.conceptClasses)}</td>
           <td><a href="./instance-page.html?uri=${escapeHtml(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a></td>
-          <td><a href="./text-page.html?uri=${escapeHtml(row.textUri)}" target="_blank">${row.textLabel}</a></td></tr>`;
+          <td><a href="./text-page/index.html?uri=${escapeHtml(row.textUri)}" target="_blank">${row.textLabel}</a></td></tr>`;
       });
       tableHTML += `</tbody></table>`;
       tableContainer.innerHTML = tableHTML;

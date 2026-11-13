@@ -4,27 +4,11 @@ const title = "Chunks Table"
 import Main from "@layouts/Main.astro"
 import WorkParams from "@components/WorkParams.astro"
 import ChunkParams from "@components/ChunkParams.astro"
+import ChunkTable from "@components/ChunkTable.astro"
 import Submit from "@components/Submit.astro"
 ---
 
 <Main {title}>
-  <style is:global>
-    tr:hover td {
-      background-color: #f8f8f8;
-    }
-    a {
-      text-decoration: underline;
-      color: inherit;
-      text-decoration-color: #aaa;
-    }
-    a:hover {
-      background-color: #eee;
-    }
-    a.passage-uri {
-      text-decoration: none;
-      color: #04d;
-    }
-  </style>
   <!-- Document the page -->
   <div>
     <h1>Chunks</h1>
@@ -38,104 +22,5 @@ import Submit from "@components/Submit.astro"
 
   <Submit />
 
-  <!-- The chunks table -->
-  <table id="tbl"></table>
-
-  <link
-    rel="stylesheet"
-    href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css"
-  />
-  <script
-    is:inline
-    src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"
-  ></script>
-
-  <script>
-    import alasql from "alasql"
-    import { createElement, BASE_URI } from "@js/util"
-    import { csvToTable, getFilterParams, resetFilters } from "@js/sql"
-
-    for (let i of ["chunk_lemma", "passage"]) await csvToTable(i)
-
-    function getData() {
-      return alasql(
-        `SELECT c.text, c.idea, c.type, p.lang, p.year, p.work_label, p.uri
-      FROM chunk_lemma AS c
-      JOIN passage p ON p.uri = c.passage_uri
-      `
-      )
-    }
-
-    function setPassageUri(data: string) {
-      return createElement("a", {
-        className: "passage-uri",
-        href: `${BASE_URI}${data}`,
-        textContent: data,
-      }).outerHTML
-    }
-
-    function updateTextLinks(data: string, property: string) {
-      const frag = createElement("div", { innerHTML: data })
-      for (let a of frag.children) {
-        const lemma =
-          a.getAttribute("data-lemma") || a.textContent.toLowerCase()
-        const href = `/scalable-reading/kwic?lemma=${lemma}&property=${property}`
-        a.setAttribute("href", href)
-      }
-      return frag.innerHTML
-    }
-
-    const tb = new DataTable("#tbl", {
-      data: getData(),
-      columns: [
-        {
-          data: "text",
-          title: "text",
-          render: (data: string) => updateTextLinks(data, "text"),
-        },
-        {
-          data: "idea",
-          title: "idea",
-          render: (data: string) => updateTextLinks(data, "idea"),
-        },
-        { data: "type", title: "type" },
-        { data: "year", title: "year" },
-        { data: "lang", title: "language" },
-        { data: "work_label", title: "work" },
-        { data: "uri", title: "passage", render: setPassageUri },
-      ],
-    })
-
-    function makeTable() {
-      alasql
-        .promise(
-          `SELECT c.text, c.idea, c.type, p.lang, p.year, p.work_label, p.uri
-            FROM chunk_lemma AS c
-            JOIN passage p ON p.uri = c.passage_uri
-            WHERE ($chunk_type = '' OR c.type = $chunk_type)
-            AND ($work = '' OR p.work_label = $work)
-            AND ($lang = '' OR p.lang = $lang)
-            AND ($year_start = '' OR p.year >= $year_start)
-            AND ($year_end = '' OR p.year <= $year_end)
-            `,
-          getFilterParams()
-        )
-        .then((data) => {
-          tb.clear()
-          tb.rows.add(data)
-          tb.draw()
-        })
-    }
-
-    makeTable()
-
-    document
-      .getElementById("button-submit")
-      ?.addEventListener("click", makeTable)
-
-    document.getElementById("button-reset")?.addEventListener("click", () => {
-      resetFilters()
-      makeTable()
-    })
-  </script>
+  <ChunkTable />
 </Main>

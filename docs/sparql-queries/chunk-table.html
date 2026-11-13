@@ -306,7 +306,7 @@
       
       pageData.forEach(row => {
         const chunkLink = `<a href="./instance-page.html?uri=${encodeURIComponent(row.chunkUri)}" target="_blank">${escapeHtml(row.chunk)}</a>`;
-        const textLink = `<a href="./text-page.html?uri=${encodeURIComponent(row.textUri)}" target="_blank">${escapeHtml(row.textLabel)}</a>`;
+        const textLink = `<a href="./text-page/index.html?uri=${encodeURIComponent(row.textUri)}" target="_blank">${escapeHtml(row.textLabel)}</a>`;
         
         tableHTML += 
         `<tr>

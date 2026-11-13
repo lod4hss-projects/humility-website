@@ -1,0 +1,431 @@
+---
+import Main from "@layouts/Main.astro"
+const title = "Humility-Text Passage Details"
+const cdn = "https://cdn.datatables.net/v/dt/dt-3.1.5/"
+---
+
+<link rel="stylesheet" href=`${cdn}/datatables.min.css` />
+<script is:inline src=`${cdn}/datatables.min.js`></script>
+
+<Main title={title}>
+  <div id="main">
+    <script is:inline src="../address.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css"
+    />
+    <script
+      is:inline
+      src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"
+    ></script>
+
+    <style is:global>
+      /* proposed chunk table */
+      #chunk-table tr:hover td {
+        background-color: #f8f8f8;
+      }
+      #chunk-table a {
+        text-decoration: underline;
+        color: inherit;
+        text-decoration-color: #aaa;
+      }
+      #chunk-table a:hover {
+        background-color: #eee;
+      }
+      #chunk-table a.passage-uri {
+        text-decoration: none;
+        color: #04d;
+      }
+
+      .dt-layout-row {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .dt-layout-row tbody * {
+        border: none !important;
+      }
+    </style>
+
+    <style is:global>
+      body {
+        font-family: sans-serif;
+        background-color: #fff;
+        color: #333;
+      }
+
+      #main {
+        margin: 20px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #333;
+      }
+
+      /* Header Section Styling */
+      #entity-header {
+        margin-bottom: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      }
+
+      #entity-header table {
+        width: 100%;
+        margin-top: 15px;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      #entity-header td {
+        padding: 15px;
+        border: 1px solid #eee;
+        vertical-align: top;
+        width: 50%;
+        font-size: 1.1em;
+        line-height: 1.5;
+      }
+
+      #entity-header th {
+        background: #e9ecef;
+        padding: 10px;
+        text-align: left;
+        font-weight: bold;
+      }
+
+      /* Dashboard Layout for Table */
+      .dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin: 2em 0;
+      }
+
+      .table-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .table-header {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        background: #f8f9fa;
+        border-radius: 8px 8px 0 0;
+      }
+
+      #table-chunks {
+        flex: 1;
+        overflow-y: auto; /* Scrollable content */
+        padding: 0;
+      }
+
+      /* Links */
+      a {
+        color: #0056b3;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      a:hover {
+        text-decoration: underline;
+        color: #003d80;
+      }
+
+      /* Bottom Navigation */
+      .nav-links {
+        margin-top: 20px;
+        padding: 15px;
+        text-align: center;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+      }
+      .nav-links span {
+        margin: 0 15px;
+        display: inline-block;
+      }
+    </style>
+
+    <!-- Entity Header Section -->
+    <div id="entity-header">Loading entity information...</div>
+
+    <!-- Dashboard Table Section -->
+    <div class="dashboard">
+      <div class="table-section">
+        <div class="table-header">
+          <h3 style="margin:0;">Associated Chunks</h3>
+        </div>
+        <table id="associated-chunks" />
+      </div>
+    </div>
+
+    <!-- Dashboard Table Section -->
+    <div class="dashboard">
+      <div class="table-section">
+        <div class="table-header">
+          <h3 style="margin:0;">Proposed Chunks</h3>
+        </div>
+        <table id="chunk-table" />
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Links -->
+    <div class="nav-links" id="final-links">
+      <!-- Links injected via JS -->
+    </div>
+  </div>
+
+  <script>
+    import alasql from "alasql"
+    import { createElement, BASE_URI } from "@js/util"
+    import { csvToTable } from "@js/sql"
+
+    for (let i of ["chunk_lemma", "passage"]) await csvToTable(i)
+
+    function updateTextLinks(data: string, property: string) {
+      const frag = createElement("div", { innerHTML: data })
+      for (let a of frag.children) {
+        const lemma =
+          a.getAttribute("data-lemma") || a.textContent.toLowerCase()
+        const href = `/scalable-reading/kwic?lemma=${lemma}&property=${property}`
+        a.setAttribute("href", href)
+      }
+      return frag.innerHTML
+    }
+
+    const chunkTable = new DataTable("#chunk-table", {
+      data: () => [],
+      paging: false,
+      searching: false,
+      bInfo: false,
+      columns: [
+        {
+          data: "text",
+          title: "Content",
+          render: (data: string) => updateTextLinks(data, "text"),
+        },
+        {
+          data: "idea",
+          title: "Idea",
+          render: (data: string) => updateTextLinks(data, "idea"),
+        },
+        { data: "type", title: "Type" },
+      ],
+    })
+
+    function makeChunkTable(passageUri: string) {
+      alasql
+        .promise(
+          `SELECT c.text, c.idea, c.type
+            FROM chunk_lemma AS c
+            JOIN passage p ON p.uri = c.passage_uri
+            WHERE p.uri = ?
+            `,
+          passageUri
+        )
+        .then((data) => {
+          chunkTable.clear()
+          chunkTable.rows.add(data)
+          chunkTable.draw()
+        })
+    }
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const uri = urlParams.get("uri")
+    const endpoint = address
+
+    if (!uri) {
+      document.body.innerHTML =
+        '<p style="color:red; padding:20px;">Error: Missing ?uri parameter.</p>'
+      throw new Error("Missing ?uri parameter")
+    }
+
+    let entityName = "Unknown Entity"
+    let passageText = "N/A"
+    let translation = "N/A"
+    let textUriGlobal = ""
+    let wisskiPageURL = ""
+
+    let allChunksData = []
+
+    const finalLinksDiv = document.getElementById("final-links")
+
+    async function fetchEntityInfo() {
+      const query = `
+      SELECT  ?expressionLabel ?textUri ?text ?translationUri ?translation ?wisskiPageURL
+        WHERE {
+            BIND( <${uri}> as ?textUri)
+            ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+                <http://www.cidoc-crm.org/cidoc-crm/P190> ?text;
+                <http://www.w3.org/2002/07/owl#sameAs> ?wisskiPageURL.
+            ?expression <http://www.cidoc-crm.org/cidoc-crm/P165> ?textUri;
+                a <http://iflastandards.info/ns/lrm/lrmoo/F2>;
+                <https://sdhss.org/ontology/shortcuts/P9> ?expressionLabel.
+            OPTIONAL{
+                 <${uri}> <http://www.cidoc-crm.org/cidoc-crm/P73> ?translationUri.
+                ?translationUri    <http://www.cidoc-crm.org/cidoc-crm/P190> ?translation.
+            }
+        }
+        LIMIT 1
+      `
+
+      try {
+        const response = await fetch(
+          `${endpoint}?query=${encodeURIComponent(query)}`,
+          {
+            headers: { Accept: "application/sparql-results+json" },
+          }
+        )
+        if (!response.ok)
+          throw new Error(`Entity info error: ${response.status}`)
+
+        const data = await response.json()
+        const bindings = data.results.bindings
+
+        if (bindings.length > 0) {
+          entityName = bindings[0].expressionLabel?.value || entityName
+          passageText = bindings[0].text?.value || passageText
+          textUriGlobal = bindings[0].textUri?.value || uri
+          wisskiPageURL = bindings[0].wisskiPageURL?.value || ""
+          translation =
+            bindings[0].translation?.value || "No translation available"
+        }
+
+        // Render Header
+        let headerHTML = `
+          <h2>${entityName}</h2>
+          <div style="margin-bottom:10px;">
+            ${wisskiPageURL ? `<a href="${wisskiPageURL}" target="_blank" style="font-weight:bold;">View on WissKI</a>` : ""}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Original Text</th>
+                <th>Translation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${passageText}</td>
+                <td>${translation}</td>
+              </tr>
+            </tbody>
+          </table>
+        `
+
+        document.getElementById("entity-header").innerHTML = headerHTML
+
+        // Render Bottom Links
+        finalLinksDiv.innerHTML = `
+          <span><a href="./chunk-table.html">← Back to chunks' list</a></span>
+          <span><a href="./instance-page.html?uri=${encodeURIComponent(textUriGlobal)}" target="_blank">View Text Triples</a></span>
+        `
+      } catch (err) {
+        document.getElementById("entity-header").innerHTML =
+          `<p style="color:red">Error loading header: ${err.message}</p>`
+      }
+    }
+
+    async function fetchChunksData() {
+      const query = `
+        SELECT (GROUP_CONCAT(DISTINCT ?conceptLabel; SEPARATOR=", ") AS ?concepts) 
+              (GROUP_CONCAT(DISTINCT ?conceptClassLabel; SEPARATOR=", ") AS ?conceptClasses) 
+              (MAX(?chunk) AS ?chunkText) 
+              ?chunkUri 
+              ?textUri
+        WHERE {
+          BIND (<${uri}> AS ?textUri)
+          ?textUri a <http://www.cidoc-crm.org/cidoc-crm/E33>;
+                  <http://www.cidoc-crm.org/cidoc-crm/P165> ?chunkUri.
+          ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P190> ?chunk;
+                    <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUriFilter.
+          ?conceptUriFilter <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabelFilter.
+          
+          OPTIONAL {
+            ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptUri. 
+            ?conceptUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptLabel;
+                      a <https://sdhss.org/ontology/sources-information-metadata/C20>.
+          }
+          OPTIONAL {
+            ?chunkUri <http://www.cidoc-crm.org/cidoc-crm/P67> ?conceptClassUri. 
+            ?conceptClassUri <https://sdhss.org/ontology/shortcuts/P9> ?conceptClassLabel;
+                        a <https://sdhss.org/ontology/sources-information-metadata/C21>.
+          }
+        }
+        GROUP BY ?textUri ?chunkUri
+        ORDER BY ?chunkUri
+        LIMIT 500
+      `
+
+      try {
+        const response = await fetch(
+          endpoint + "?query=" + encodeURIComponent(query),
+          {
+            headers: { Accept: "application/sparql-results+json" },
+          }
+        )
+        if (!response.ok) throw new Error(`SPARQL error: ${response.status}`)
+
+        const data = await response.json()
+
+        allChunksData = data.results.bindings.map((i) => {
+          for (let k of [
+            "chunkText",
+            "textUri",
+            "concepts",
+            "conceptClasses",
+            "chunkUri",
+          ]) {
+            i[k] = i[k]?.value || ""
+          }
+          return i
+        })
+
+        const tb = new DataTable("#associated-chunks", {
+          data: allChunksData,
+          searching: false, // remove global search
+          paging: false, // there's not so many chunk per passage
+          bInfo: false, // hide "Showing 1 to 4 of 4 entries".
+          columns: [
+            {
+              data: "chunkText",
+              title: "Chunk Content",
+              render: (chunkText: string, _: any, row: object) => {
+                if (row.chunkUri && row.chunkUri.startsWith("http")) {
+                  const href = row.chunkUri.startsWith(
+                    "https://humility.lod4hss.cloud/resource/"
+                  )
+                    ? `./instance-page.html?uri=${encodeURIComponent(row.chunkUri)}`
+                    : row.chunkUri
+                  chunkText = `<a href="${href}" target="_blank">${row.chunkText}</a>`
+                }
+                return chunkText
+              },
+            },
+            { data: "concepts", title: "Concepts" },
+            { data: "conceptClasses", title: "Concept Classes" },
+          ],
+        })
+
+        console.log(uri)
+        makeChunkTable("6a4cebebe6e05")
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    ;(async () => {
+      await fetchEntityInfo()
+      await fetchChunksData()
+    })()
+  </script>
+</Main>
