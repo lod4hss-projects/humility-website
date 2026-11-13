@@ -9,4 +9,4 @@ export function createElement(tag: string, attrs: object | null) {
 }
 
 export const BASE_URI =
-  "https://humility.lod4hss.org/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F"
+  "/sparql-queries/text-page.html?uri=https%3A%2F%2Fhumility.lod4hss.cloud%2Fresource%2F"
