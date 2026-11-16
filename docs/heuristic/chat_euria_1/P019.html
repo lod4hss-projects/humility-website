@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>P019 — Humility Coding Annotation</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>P019 — Humility Coding Annotation</h1>
+<div class="subtitle">
+  Scheme: humility-coding v0.4 + proposed v0.5 changes &nbsp;·&nbsp;
+  Annotator: FB &nbsp;·&nbsp; Date: 2026-11-15 &nbsp;·&nbsp; Tokenization: w1–w78
+</div>
+
+<h2>Metadata</h2>
+<div class="meta-grid">
+  <span class="meta-key">Language</span><span>Latin (la)</span>
+  <span class="meta-key">Date of text</span><span>[13th c.?] — inferred, LOW confidence</span>
+  <span class="meta-key">Date witness</span><span>[unknown]</span>
+  <span class="meta-key">Provenance</span><span>[unknown]</span>
+  <span class="meta-key">Author</span><span>[unknown]</span>
+  <span class="meta-key">Gender</span><span>unknown</span>
+  <span class="meta-key">Attribution</span><span>unattributed</span>
+  <span class="meta-key">Genre</span><span>[sermo / summa de virtutibus?]</span>
+  <span class="meta-key">Text type</span><span>mixed <span class="tag tag-broken">BREAKS single-valued design</span></span>
+</div>
+
+<h3>Provenance Inference</h3>
+<div class="warning">
+  <strong>Observation:</strong> 'Unde Augustinus:' as a citation introducer is a Germanism in Latin (calque of 'nu'), common in 13th-c. German Dominican Latin.<br>
+  <strong>Status:</strong> stylistic_inference_only &nbsp;·&nbsp; <strong>Confidence:</strong> low<br>
+  <strong>Warning:</strong> this is exactly the kind of inference an LLM will promote to an attribution. It licenses no author claim.
+</div>
+
+<h3>Layers in Passage</h3>
+<ul>
+  <li><span class="tag">definition_claim</span> w1–w4</li>
+  <li><span class="tag">argument</span> w5–w11</li>
+  <li><span class="tag">exemplum</span> w12–w43</li>
+  <li><span class="tag">scriptural_citation</span> w44–w53</li>
+  <li><span class="tag">patristic_citation</span> w54–w78</li>
+</ul>
+
+<h3>Quotations</h3>
+<ul>
+  <li><strong>Ecclesiasticus 2</strong> (Sir 2:5 Vulg.) — chapter_only, verbatim: partial, <em>truncated</em></li>
+  <li><strong>Augustinus</strong> (unspecified) — introduced_by_name_only, verbatim: unverified <span class="tag tag-unverified">UNVERIFIED</span></li>
+</ul>
+
+<h3>Internal Logic &amp; Context Gap</h3>
+<ul>
+  <li>'primo' (w5) implies a <em>secundo</em> outside the excerpt.</li>
+  <li>'sic descripta' (w2–3) refers BACK to a description of humility NOT in the excerpt. The promised definition is missing.</li>
+  <li>The <em>secundo/tertio</em> of the argument are missing.</li>
+</ul>
+
+<h3>Editorial Questions</h3>
+<ul>
+  <li>Is 'etc.' (w53) scribal abbreviation or modern editorial insertion? It changes whether the truncation is the author's or the editor's.</li>
+</ul>
+
+<h2>Source Text</h2>
+<div class="source-text">
+humilitas sic descripta imitanda, primo quia sue angustie est paciens tolleratrix; ut matrona a viro suo iniuriose tractata pacienter sustinet ne virum dignum vituperio reddat, and if perchance, from the injury of a beating, a mark appears outwardly for the reproach, she carefully conceals it, asserting that she incurred such harm from elsewhere. Ecclesiastici 2 dicitur: "Aurum et argentum in igne probantur," etc. Unde Augustinus: "Beati, inquit, humiles qui, etsi quando fieri solet ut iniustas audiant increpaciones, amplius se Christo humilient et minus se audire quam meruerunt proclamant."
+</div>
+
+<h2>Source Lemmata Present</h2>
+
+<h3>Core Field</h3>
+<table class="lemma-table">
+<tr><th>Lemma</th><th>Position</th></tr>
+<tr><td>humilitas</td><td>w1</td></tr>
+<tr><td>humilis (adj., in citation)</td><td>w58</td></tr>
+<tr><td>humiliare (vb., reflexive)</td><td>w71</td></tr>
+</table>
+
+<h3>Adjacent Field</h3>
+<table class="lemma-table">
+<tr><th>Lemma</th><th>Position</th></tr>
+<tr><td>patientia / paciens</td><td>w10, w19</td></tr>
+<tr><td>tolerare (tolleratrix)</td><td>w11</td></tr>
+<tr><td>sustinere</td><td>w20</td></tr>
+<tr><td>angustia</td><td>w8 <em>(constriction/narrowness, NOT lowness)</em></td></tr>
+<tr><td>dissimulare</td><td>w37</td></tr>
+<tr><td>iniuria / iniustus</td><td>w17, w65</td></tr>
+<tr><td>increpatio</td><td>w67</td></tr>
+<tr><td>vituperium</td><td>w24, w29</td></tr>
+<tr><td>verber</td><td>w31</td></tr>
+<tr><td>lesio</td><td>w32</td></tr>
+</table>
+
+<h3>Core Field Absent</h3>
+<ul>
+  <li>abiectio / contemptus_sui / minoritas: <em>not mentioned</em></li>
+  <li>humus-etymology or lowness imagery: <em>not mentioned</em> — notable: absent in a definition passage</li>
+</ul>
+
+<h3>Antonym Field Present</h3>
+<p>iniuria, iniustae increpationes, vituperium (w17, w65, w24, w29)</p>
+<p class="section-note">The opposed term is not <em>superbia</em> but <strong>INJUSTICE DONE TO THE SUBJECT</strong></p>
+
+<h2>Annotation Units</h2>
+
+<!-- C1 -->
+<div class="unit">
+<div class="unit-header">P019.c1 &nbsp;·&nbsp; w1–w11 &nbsp;·&nbsp; <span class="tag">definition_claim</span></div>
+<div class="unit-statement">Humility, so described, is to be imitated, first because it patiently bears its own constriction</div>
+<div class="field-grid">
+  <span class="field-key">Locus</span><span>affect_or_will</span>
+  <span class="field-key">Voice</span><span>imposed_by_others_endured</span>
+  <span class="field-key">Structure</span><span>positive (bearing, not renouncing)</span>
+  <span class="field-key">Bodily component</span><span>pain_endurance</span>
+  <span class="field-key">Direction</span><span>reflexive</span>
+  <span class="field-key">Valence</span><span>probative_trial <span class="tag tag-new">NEW VALUE</span></span>
+  <span class="field-key">Model</span><span>definition_claim</span>
+  <span class="field-key">Speech act</span><span>definitio</span>
+  <span class="field-key">Argument form</span><span>ratio ('quia' — a ground is being supplied)</span>
+  <span class="field-key">Confidence</span><span>medium</span>
+</div>
+<div class="gloss"><span class="gloss-label">Literal gloss</span>humility thus described is to-be-imitated, first because of its own straitness it is a patient bearer</div>
+<div class="gloss"><span class="gloss-label">Paraphrase</span>the humility just described is something to imitate — first because it can patiently put up with its own squeezed condition</div>
+<p style="font-size:10.5px; margin-top:8px;"><strong>Uncertainty:</strong> 'angustia': distress | literal narrowness | constriction of circumstance. 'sue': humility's own, or the imitator's? Possessive is ambiguous.</p>
+<ul class="notes">
+  <li>The humility term here denotes CONSTRICTION, not lowness. No <em>humus</em> imagery anywhere in a passage whose opening words are a definition.</li>
+  <li>'tolleratrix': rare feminine agent noun; the virtue is grammatically figured as a female bearer before the female exemplum arrives. Doubling noted, not interpreted.</li>
+  <li>'imitanda' makes imitation the operative verb: humility is not possessed but performed by imitation — of the wife, and (via w70) of Christ.</li>
+</ul>
+</div>
+
+<!-- C2 -->
+<div class="unit">
+<div class="unit-header">P019.c2 &nbsp;·&nbsp; w12–w25 &nbsp;·&nbsp; <span class="tag">exemplum</span></div>
+<div class="unit-statement">As a married woman abused by her husband patiently endures and does not return reproach</div>
+<div class="field-grid">
+  <span class="field-key">Locus</span><span>body, speech, social_relation</span>
+  <span class="field-key">Voice</span><span>imposed_by_others_endured</span>
+  <span class="field-key">Structure</span><span>privative (non-retaliation)</span>
+  <span class="field-key">Privative target</span><span>retaliatory_speech</span>
+  <span class="field-key">Bodily component</span><span>pain_endurance, abused_body</span>
+  <span class="field-key">Direction</span><span>horizontal</span>
+  <span class="field-key">Valence</span><span>probative_trial</span>
+  <span class="field-key">Visibility</span><span>performed</span>
+  <span class="field-key">Model</span><span>exemplum_domestic <span class="tag tag-new">NEW VALUE</span></span>
+  <span class="field-key">Precondition asymmetry</span><span>explicit (husband/wife power relation is the condition of the exemplum's intelligibility)</span>
+  <span class="field-key">Agent gender</span><span>female</span>
+  <span class="field-key">Patient gender</span><span>male</span>
+  <span class="field-key">Speech act</span><span>exemplum</span>
+  <span class="field-key">Argument form</span><span>exemplum</span>
+  <span class="field-key">Confidence</span><span>high</span>
+</div>
+<div class="gloss"><span class="gloss-label">Literal gloss</span>as a matron by her husband abusively treated patiently endures lest she return to the husband something worthy of reproach</div>
+<div class="gloss"><span class="gloss-label">Paraphrase</span>like a wife who is badly treated by her husband and takes it quietly, so as not to answer him back with anything blameworthy</div>
+<p style="font-size:10.5px; margin-top:8px;"><strong>Uncertainty:</strong> 'reddat': to give back | to render in return — reciprocity is what is being refused</p>
+<ul class="notes">
+  <li>Humility is defined as the refusal of reciprocity. The exemplum's persuasive force depends entirely on the wife's powerlessness: it would not work as an image if the parties were equals. This is a property of the TEXT, not of my reading.</li>
+</ul>
+</div>
+
+<!-- C3 -->
+<div class="unit">
+<div class="unit-header">P019.c3 &nbsp;·&nbsp; w26–w43 &nbsp;·&nbsp; <span class="tag">exemplum</span></div>
+<div class="unit-statement">If a bruise from the beating shows on her body, she carefully hides it, claiming the injury came from somewhere else</div>
+<div class="field-grid">
+  <span class="field-key">Locus</span><span>body, speech</span>
+  <span class="field-key">Voice</span><span>self_directed_within_imposition</span>
+  <span class="field-key">Structure</span><span>privative_and_positive</span>
+  <span class="field-key">Privative target</span><span>disclosure</span>
+  <span class="field-key">Strategic</span><span>explicit — 'caute' (w36): wariness is prescribed</span>
+  <span class="field-key">Bodily component</span><span>injury_mark <span class="tag tag-new">NEW</span>, concealment_of_body <span class="tag tag-new">NEW</span></span>
+  <span class="field-key">Direction</span><span>horizontal</span>
+  <span class="field-key">Epistemic component</span><span>deliberate_misstatement</span>
+  <span class="field-key">Truth relation</span><span>false_assertion <span class="tag tag-new">NEW DIMENSION</span></span>
+  <span class="field-key">Valence</span><span>probative_trial</span>
+  <span class="field-key">Visibility</span><span>hidden (body visible, cause concealed)</span>
+  <span class="field-key">Model</span><span>exemplum_domestic</span>
+  <span class="field-key">Precondition asymmetry</span><span>explicit</span>
+  <span class="field-key">Agent gender</span><span>female</span>
+  <span class="field-key">Speech act</span><span>exemplum</span>
+  <span class="field-key">Confidence</span><span>high</span>
+</div>
+<div class="gloss"><span class="gloss-label">Truth relation detail</span><em>asserens se aliunde tale malum incurrisse</em> (w38–43) — she asserts a falsehood about the origin of her own injury</div>
+<div class="gloss"><span class="gloss-label">Literal gloss</span>and if by chance, out of the beating's injury, a lesion appears outside for reproach, she carefully dissembles it, asserting that from elsewhere she such harm had met</div>
+<div class="gloss"><span class="gloss-label">Paraphrase</span>and if a mark from the beating shows on her skin and could bring shame, she takes care to hide it, saying it happened to her somewhere else</div>
+<p style="font-size:10.5px; margin-top:8px;"><strong>Uncertainty:</strong> 'vituperio' (w29) as dative of purpose or of cause: mark that would bring reproach | mark that is itself reproachable</p>
+<ul class="notes">
+  <li>Concealment and a false statement are INSIDE the definition of humility, not exceptions to it. The virtue includes managing the truth about one's own suffering.</li>
+  <li><strong>INTERNAL TENSION:</strong> if 'Augustinus' (w55) is read as the author of <em>De mendacio / Contra mendacium</em>, the text prescribes what its own cited authority forbids. Whether the medieval reader felt this depends on which Augustine was known from the florilegium — a question for the citation network, not for me.</li>
+</ul>
+</div>
+
+<!-- C4 -->
+<div class="unit">
+<div class="unit-header">P019.c4 &nbsp;·&nbsp; w44–w53 &nbsp;·&nbsp; <span class="tag">scriptural_citation</span></div>
+<div class="unit-statement">Warrant from Ecclesiasticus — gold and silver are proved in the fire</div>
+<div class="field-grid">
+  <span class="field-key">Citation target</span><span>Sir 2:5 (Vulg.)</span>
+  <span class="field-key">Citation form</span><span>chapter_only_plus_truncation</span>
+  <span class="field-key">Truncation</span><span>yes</span>
+  <span class="field-key">Function</span><span>warrant_for_probative_valence</span>
+  <span class="field-key">Valence</span><span>probative_trial</span>
+  <span class="field-key">Argument form</span><span>testis_scripturae</span>
+  <span class="field-key">Confidence</span><span>high</span>
+</div>
+<div class="warning">
+  <strong>Truncation note:</strong> Sir 2:5 in the Vulgate continues with a second member comparing the acceptable-to-God to what is in <em>'fornace humiliationis'</em> (furnace of humiliation). The excerpt stops at 'probantur' and substitutes 'etc.' The omitted half is the half that names humiliation. VERIFY exact wording against the edition before relying on this; if confirmed, the ellipsis is the most significant feature of the citation.
+</div>
+<div class="gloss"><span class="gloss-label">Literal gloss</span>in Ecclesiasticus 2 it is said: gold and silver are proved in the fire, etc.</div>
+<div class="gloss"><span class="gloss-label">Paraphrase</span>as Ecclesiasticus chapter 2 says, gold and silver are tested by fire, and so on</div>
+<ul class="notes">
+  <li>A truncated citation is a data point, not a defect: the choice of where to stop is an interpretive act by whoever wrote or copied this.</li>
+</ul>
+</div>
+
+<!-- C5 -->
+<div class="unit">
+<div class="unit-header">P019.c5 &nbsp;·&nbsp; w54–w78 &nbsp;·&nbsp; <span class="tag">patristic_citation</span></div>
+<div class="unit-statement">Augustine — blessed are the humble who, hearing unjust rebukes, humble themselves all the more for Christ, and declare they are treated less than they deserve</div>
+<div class="field-grid">
+  <span class="field-key">Citation target</span><span>Augustinus <span class="tag tag-unverified">UNVERIFIED</span></span>
+  <span class="field-key">Locus</span><span>speech, affect_or_will, relation_to_God</span>
+  <span class="field-key">Voice</span><span>imposed_by_others_endured</span>
+  <span class="field-key">Structure</span><span>privative_and_positive</span>
+  <span class="field-key">Bodily component</span><span>receiving_rebuke ('audiant' as being subjected to)</span>
+  <span class="field-key">Direction</span><span>vertical_upward, reflexive</span>
+  <span class="field-key">Epistemic component</span><span>self_accusation_overclaiming_desert <span class="tag tag-new">NEW VALUE</span></span>
+  <span class="field-key">Truth relation</span><span>declared_overclaim</span>
+  <span class="field-key">Valence</span><span>probative_trial</span>
+  <span class="field-key">Visibility</span><span>performed (<em>proclamant</em>: public, not private belief)</span>
+  <span class="field-key">Model</span><span>imitatio_Christi, patristic_warrant</span>
+  <span class="field-key">Precondition asymmetry</span><span>explicit (unjust rebukers)</span>
+  <span class="field-key">Speech act</span><span>citatio</span>
+  <span class="field-key">Argument form</span><span>testis_patrum</span>
+  <span class="field-key">Confidence</span><span>high</span>
+</div>
+<div class="gloss"><span class="gloss-label">Epistemic detail</span><em>minus se audire quam meruerunt proclamant</em> — they PROCLAIM they are treated less than they have deserved: self-assessment is deliberately skewed toward greater desert of punishment</div>
+<div class="gloss"><span class="gloss-label">Literal gloss</span>whence Augustine: blessed, he says, the humble who, even if sometimes it happens that unjust rebukes they hear, more strongly themselves for Christ humble and less themselves to hear than they have deserved proclaim</div>
+<div class="gloss"><span class="gloss-label">Paraphrase</span>which is why Augustine says: happy are the lowly who, when they get unfairly told off, humble themselves all the harder for Christ's sake, and say out loud that they got off lighter than they deserved</div>
+<p style="font-size:10.5px; margin-top:8px;"><strong>Uncertainty:</strong> 'audire' w66 'hear' vs w75 'be treated' (Latin idiom <em>audire aliquid</em>). The repetition across the two clauses may be a deliberate pun.</p>
+<ul class="notes">
+  <li>'amplius' (w68): humility admits of increase by self-application. It is not a state but a quantity one can raise in response to treatment.</li>
+  <li>The epistemic component, absent in P017 and inverted into assurance in P018, is here PRESENT and deliberately FALSE-BIASED. Three relations to self-knowledge across three passages.</li>
+</ul>
+</div>
+
+<h2>Citation Network Edges</h2>
+<ul class="edge-list">
+  <li>P019.c4 <span class="edge-arrow">→</span> Sir 2:5 &nbsp; <span class="tag">truncated_warrant</span></li>
+  <li>P019.c5 <span class="edge-arrow">→</span> Augustinus [unresolved] &nbsp; <span class="tag tag-unverified">unverified_warrant</span></li>
+  <li>P019.c1 <span class="edge-arrow">→</span> [missing upstream description] &nbsp; <span class="tag tag-broken">anaphora_outside_corpus</span> (dangling edge)</li>
+</ul>
+
+<h2>Pivot Analysis</h2>
+<p><strong>Single English word attempted:</strong> <em>humility</em></p>
+
+<h3>Renderings Kept Unnormalised</h3>
+<table class="lemma-table">
+<tr><th>Latin</th><th>English options kept</th></tr>
+<tr><td>humilitas</td><td>humility, lowliness, self-abasement</td></tr>
+<tr><td>angustia</td><td>distress, straitness, constriction</td></tr>
+<tr><td>dissimulare</td><td>dissemble, conceal, hide, disguise</td></tr>
+<tr><td>humiliare</td><td>to humble, to lower, to abase</td></tr>
+</table>
+
+<h3>Pivot Loss Flags</h3>
+<ul>
+  <li>'humility' erases <em>angustia</em>: the passage's humility is NARROWNESS, not lowness</li>
+  <li>'she dissembles it' loses the deliberate falsehood, which English 'dissemble' softens; 'she lied about it' overstates. Neither is free.</li>
+  <li>The exemplum's force (a beaten wife as the model of a virtue commended to the reader) survives translation only as content, not as rhetoric</li>
+</ul>
+
+<h3>Recall Check</h3>
+<div class="recall-box">
+  <strong>Method:</strong> source_lemma_driven<br>
+  Source lemmas retrieved: 15 &nbsp;·&nbsp; Captured by pivot: 15 &nbsp;·&nbsp; Leaks: 0<br><br>
+  <strong>If keyed on <em>humilitas</em> only:</strong><br>
+  Units retrieved: 1 (c1 only) &nbsp;·&nbsp; Units total: 5<br>
+  <span class="recall-highlight">Recall: 0.20</span><br><br>
+  <em>80% of the humility content is realised without the lemma: endurance, non-retaliation, concealment, the fire test, the beatitude. This passage would be scored as a single mention by any word-keyed method.</em>
+</div>
+
+<h2>Critical Notes</h2>
+<div class="critical">
+  <strong>Augustinian attribution UNVERIFIED.</strong> 'Beati humiles' is not a Vulgate beatitude (cf. Matt 5:5 'beati mites'). Check CCL indices, the Augustinus-Lexikon, and Clavis Fontium for the sentence; treat as possibly florilegetic or pseudo-Augustinian until confirmed. Do not cite as Augustine.
+</div>
+<ul>
+  <li>'etc.' in c4 must be resolved as scribal vs editorial.</li>
+  <li>The definition promised by 'sic descripta' is absent. If the corpus is to support definitional claims, this passage should be re-extracted at argument boundaries to include the antecedent description and the <em>secundo</em>.</li>
+</ul>
+
+<h2>Scheme Feedback — Proposed v0.5</h2>
+
+<div class="feedback-section">
+<h3>New Dimensions Required</h3>
+<ul>
+  <li><strong>truth_relation</strong> — concealment | false_assertion | self_accusation | silence | non_retaliation | not_mentioned</li>
+  <li><strong>precondition_asymmetry</strong> — the exemplum is unintelligible without it</li>
+  <li><strong>exemplum_agent_gender</strong></li>
+  <li><strong>layer</strong> — passage is not a single text-type</li>
+  <li><strong>citation_truncation</strong></li>
+</ul>
+
+<h3>New Values Required</h3>
+<table class="lemma-table">
+<tr><th>Dimension</th><th>New values</th></tr>
+<tr><td>valence</td><td>probative_trial</td></tr>
+<tr><td>voice</td><td>imposed_by_others_endured</td></tr>
+<tr><td>bodily_component</td><td>injury_mark, pain_endurance, concealment_of_body, abused_body</td></tr>
+<tr><td>epistemic_component</td><td>self_accusation_overclaiming_desert, deliberate_misstatement, confidence_of_being_heard</td></tr>
+<tr><td>model</td><td>exemplum_domestic, imitatio_Christi, definition_claim, petitionary_administrative_etiquette</td></tr>
+<tr><td>visibility</td><td>hidden (c3 requires body-visible / cause-concealed)</td></tr>
+</table>
+
+<h3>Design Decision Broken</h3>
+<p><code>text_type</code> was designed passage-level and single-valued. This passage contains a definition, an argument, an exemplum and two citations. <strong>Move <code>layer</code> to unit level.</strong></p>
+</div>
+
+</body>
+</html>

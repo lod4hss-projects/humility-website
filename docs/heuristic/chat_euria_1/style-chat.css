@@ -1,0 +1,77 @@
+@page {
+    margin: 20px;
+}
+
+html,
+body {
+    padding: 20px;
+    font-family: Roboto, Arial, system, sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
+}
+
+img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 20px auto;
+    border: 0.5px solid #000;
+}
+
+a {
+    text-decoration: underline;
+    color: blue;
+}
+
+video,
+img {
+    max-width: 100%;
+}
+
+pre {
+    max-width: 100%;
+    overflow: auto;
+    background-color: #f5f5f5;
+    padding: 10px;
+    border: 1px solid #ddd;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+table,
+th,
+td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 4px;
+}
+
+th,
+td {
+    vertical-align: top;
+}
+
+.header_no_underline {
+    text-decoration: none;
+    color: black;
+}
+
+h1,
+h2 {
+    border-bottom: 2px solid #636363;
+    padding-bottom: 4px;
+}
+
+blockquote {
+    padding: 0 12px;
+    border-left: 3.5px solid #c4c4c4;
+    margin: 12px 0;
+    color: #555;
+    font-style: italic;
+}
+
+.task-list-item {
+    list-style-type: none;
+    text-indent: -1.5em;
+    padding-left: 1.5em;
+}
