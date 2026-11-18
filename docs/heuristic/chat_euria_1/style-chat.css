@@ -75,3 +75,12 @@ blockquote {
     text-indent: -1.5em;
     padding-left: 1.5em;
 }
+
+  
+.highlight {
+    background: #fbf68c;
+    padding: 0.1em 0.15em;
+    border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }

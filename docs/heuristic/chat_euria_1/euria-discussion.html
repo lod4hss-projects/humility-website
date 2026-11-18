@@ -1,438 +1,1456 @@
 <!DOCTYPE html>
 <html>
- <head>
- <meta charset="UTF-8">
- <link rel="stylesheet" href="style-chat.css">
- </head>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style-chat.css">
+</head>
+
 <body>
- <h1 id="studying-humility-in-a-trilingual-medieval-corpus">Studying Humility in a Trilingual Medieval Corpus</h1>
-<h3 id="methodological-dialogue--digital-methods-conceptual-history-and-layer-conditional-annotation">Methodological dialogue — digital methods, conceptual history, and layer-conditional annotation</h3>
-<p><em>Participants: Francesco Beretta (researcher) and Euria (AI assistant). Exported 15 November 2026.</em></p>
-<p><strong>Contents</strong></p>
-<ol>
-<li>General overview: conceptual history, digital pipeline, and literature</li>
-<li>The English pivot: evaluation and criticism</li>
-<li>The pivot as heuristic — and the referent-level comparison it licenses</li>
-<li>The controlled annotation record, and LLM-generated annotation</li>
-<li>Worked records: P017 (Middle High German), P018 (Latin), P019 (Latin)</li>
-<li>Layer-conditional annotation: differences by text type</li>
-<li>Appendix — Layer-Conditional Annotation Scheme (LCAS)</li>
-<li>Cross-language limits of the layer set</li>
-</ol>
-<hr />
-<h2 id="1-corpus-and-research-question">1. Corpus and research question</h2>
-<blockquote>
-<p><strong>Prompt.</strong> I have a corpus of 400 passages, two to ten sentences each, extracted from different medieval texts and authors in Latin, German, arab. They contain theory, practice, examples and quotations from others authors. I want to study the different notions of humility and ways of defining it in the corpus, with common elements and differences according to language, time gender of the author.</p>
-<p>How to proceed with digital methods and what literature exists in this domain of conceptual history? Give first general overview</p>
-</blockquote>
-<h3 id="answer">Answer</h3>
-<h4 id="11-what-you-are-actually-doing">1.1 What you are actually doing</h4>
-<p>Your project sits at the intersection of three traditions, and naming them will shape every methodological choice:</p>
-<ul>
-<li><strong>Conceptual history (<em>Begriffsgeschichte</em>)</strong>, in the lineage of the <em>Geschichtliche Grundbegriffe</em> (Brunner, Conze, Koselleck, 1972–1997), where a concept is not a stable meaning but a <em>Sattelbegriff</em> — a saddle term carrying competing social experiences across time. Koselleck's <em>Futures Past</em> and Melvin Richter's synthesis (&quot;Conceptual History and Political Theory,&quot; <em>History and Theory</em>, 1995) are the entry points.</li>
-<li><strong>The Cambridge school</strong> (Skinner, &quot;Meaning and Understanding in the History of Ideas,&quot; 1969; Pocock, <em>Politics, Language and Time</em>, 1971), which insists you ask <em>what someone was doing</em> in defining humility — prescribing, polemicising, claiming authority — rather than extracting a definition.</li>
-<li><strong>Semantic field theory</strong> (Jost Trier, 1931), which is indispensable here: humility has no meaning outside its field (pride, obedience, lowliness, poverty, meekness, contempt of self) and its oppositions. For the Middle Ages specifically, Rudolf Suntrup's work on courtly and monastic <em>Wertbegriffe</em> (value concepts) is the model for applying field analysis to medieval vocabularies.</li>
-</ul>
-<p>The relevant debate today is whether &quot;conceptual history&quot; should be replaced by a &quot;history of concepts&quot; — see the Stanford <strong>History of Concepts</strong> project (Dan Edelstein et al.) and the journal <em>Contributions to the History of Concepts</em> (ECSA).</p>
-<h4 id="12-the-corpus-as-data-design-before-computation">1.2 The corpus as data: design before computation</h4>
-<p>Your four variables are language, period, author gender, and — you mentioned it almost in passing — <strong>text type</strong> (theory / practice / example / quotation). That last one is not a footnote. A definition in a summa, an exemplum, and a quotation of Augustine do not perform the same act, and quotations mean your corpus is a <em>network</em>, not a list: the same passage circulating under different authors is your best evidence for what counted as an authority on humility. Plan for citation/text-reuse detection from the start (tools such as CiteMatch from Huygens ING, or general text-reuse pipelines).</p>
-<p>Concretely, encode each passage in TEI with a controlled metadata block: language, century (and, where possible, decade), provenance, author gender (with an explicit field for <em>attributed</em> vs. <em>attested</em> gender, and for anonymous texts — do not silently drop them), genre, text-type layer, and, crucially, <strong>whether the passage is original, adapted, or quoted, and from whom</strong>. This metadata is what makes the comparative matrix possible later; no algorithm will recover it.</p>
-<h4 id="13-a-staged-pipeline">1.3 A staged pipeline</h4>
-<p><strong>Stage 1 — Define the semantic fields, by hand, per language.</strong> Do not let a tool discover the field for you. For each language, write out the core term, near-synonyms, and antonyms:</p>
-<table>
-<thead>
-<tr><th> </th><th>Core</th><th>Adjacent</th><th>Opposed</th></tr>
-</thead>
-<tbody>
-<tr><td>Latin</td><td><em>humilitas</em>, <em>humilis</em></td><td><em>abiectio</em>, <em>contemptus sui</em>, <em>obedientia</em>, <em>mansuetudo</em>, <em>minoritas</em>, <em>exinanitio</em></td><td><em>superbia</em>, <em>elatio</em>, <em>iactantia</em>, <em>vanagloria</em></td></tr>
-<tr><td>Middle High German</td><td><em>diemuot/demut</em></td><td><em>niderigkait</em>, <em>smachaereit</em>, <em>gedult</em>, <em>armuot</em></td><td><em>hochvart</em>, <em>stolz</em>, <em>hofart</em></td></tr>
-<tr><td>Arabic</td><td><em>tawāḍuʿ</em>, <em>khuḍūʿ</em></td><td><em>khushūʿ</em>, <em>waraʿ</em>, <em>faqr</em>, <em>dhull</em>, <em>inkisār</em></td><td><em>kibr</em>, <em>ʿujb</em>, <em>fakhr</em>, <em>ʿizz</em></td></tr>
-</tbody>
-</table>
-<p>The asymmetry of this table is itself a hypothesis to test: German mysticism's <em>niderigkait</em> (lowness) picks out a different experiential slice than <em>humilitas</em>, and Arabic splits bodily/interior reverence (<em>khushūʿ</em>, <em>khuḍūʿ</em>) from social condescension (<em>tawāḍuʿ</em>). Do not assume a single concept across languages — the &quot;untranslatability&quot; is data.</p>
-<p><strong>Stage 2 — Normalisation and lemmatisation.</strong> This is the hardest technical step and where medieval corpora usually fail. Latin: lemmatisers exist and work reasonably (UDPipe/UD Latin treebanks, plus the Du Cange glossary and the Brepols Library of Latin Texts / CETEDOC corpora for comparison). Middle High German: no reliable off-the-shelf lemmatiser; the Mittelhochdeutsche Begriffsdatenbank (Salzburg) and the Deutsches Textarchiv (CLARIN.D) give you reference word lists and existing annotations you can adapt. Arabic: CAMeL Tools, FARASA, or AraMorph for morphological analysis, and the Open Arabic Lexicon (OPENLex) for period vocabulary. Budget real time here, and consider a manually lemmatised gold subset (say 40–50 passages per language) to measure your error rate.</p>
-<p><strong>Stage 3 — Distant reading.</strong> Four complementary passes:</p>
-<ul>
-<li><strong>Concordance and collocation</strong> (AntConc, NoSketch, or a Python pipeline): which verbs govern humility terms, which adjectives modify them, which theological agents appear. Definitional syntax (&quot;humility is…&quot;, &quot;<em>demuot ist</em>…&quot;, &quot;<em>al-tawāḍuʿ</em>…&quot;) is your highest-yield search.</li>
-<li><strong>Topic modelling</strong> (LDA/BERTopic) to see which contexts humility travels with — monastic discipline, prayer, gender, the body, the poor.</li>
-<li><strong>Diachronic distributional semantics</strong>: word embeddings trained on sub-corpora (by century, by language, by gender) so you can measure how the neighbourhood of <em>humilitas</em> or <em>tawāḍuʿ</em> shifts. Methodologically, start with Kim et al. (2012) and then the critical literature — Tuomainen &amp; Van Strien's &quot;Conceptualizing Diachronic Distributional Semantic Analysis for History Research&quot; (<em>Cultural Analytics</em>, 2021) and Tahmasebi et al.'s survey of historical word-change analysis — because embeddings on 400 short passages will be noisy and you must not over-read them.</li>
-<li><strong>Concept co-occurrence networks</strong>, to visualise the field structure per language and period.</li>
-</ul>
-<p><strong>Stage 4 — Close reading and typology.</strong> Distant reading ranks passages; only reading classifies them. Build a small typology of <em>ways of defining</em> — e.g. humility as (a) right estimation of self, (b) absence of self-will / obedience, (c) bodily and liturgical posture, (d) relational to God, (e) social condescension toward inferiors, (f) epistemic limitation, (g) contempt of self — and code each passage. This codebook is your real contribution; the numbers merely show you where to look.</p>
-<p><strong>Stage 5 — Comparison.</strong> Cross-tabulate the typology against language × century × gender × text-type. Report where the distribution is thin rather than asserting absence.</p>
-<h4 id="14-literature-on-the-digital-turn-in-conceptual-history">1.4 Literature on the digital turn in conceptual history</h4>
-<p>The key programmatic text is Stefan Haas, &quot;Conceptual History and the Digital Turn&quot;; see also the discussions of <em>Begriffsgeschichte</em> and digital humanities in German handbook literature, and the <strong>Digital Conceptual History Network</strong> (Leipzig/Dresden, Sebastian Zöbel and colleagues), which explicitly works on historical semantic change with computational tools. For ready-made infrastructure: <strong>ConceptLab</strong> (Wagner, Obregón, Kern &amp; Pachur, <em>Behavior Research Methods</em>, 2021) for corpus concept comparison, the <strong>History of Concepts Toolbox</strong> (Stanford), the Münster <strong>Semantographies</strong> project, and the CLARIN / DARIAH infrastructures. Franco Moretti's <em>Distant Reading</em> and Jockers's <em>Macroanalysis</em> remain the framing texts, with the caveat that both assume monolingual modern novels.</p>
-<h4 id="15-substantive-scholarship-on-humility-to-position-yourself-against">1.5 Substantive scholarship on humility to position yourself against</h4>
-<ul>
-<li><strong>Latin/Christian</strong>: Benedict's Rule ch. 7 (the twelve steps, a <em>ladder</em> — humility as graded practice); Bernard of Clairvaux, <em>De gradibus humilitatis et superbiae</em> (humility and pride as a single coupled system); Aquinas, <em>ST</em> II–II qq. 161–162 (humility annexed to temperance — a crucial reclassification); Augustine on <em>superbia</em> as the root sin. Jean Leclercq's <em>L'Amour des lettres et le désir de Dieu</em> for monastic mentalités; Ruedi Imbach's recent work on humility and modernity for the long arc.</li>
-<li><strong>German</strong>: Kurt Ruh's <em>Geschichte der mittelalterlichen deutschen Mystik</em> and the Eckhart/Suso/Tauler literature on <em>niderigkait</em>, where humility detaches from merit-based ethics toward detachment and &quot;lowness&quot; as ontological.</li>
-<li><strong>Arabic</strong>: al-Muhasibi's <em>al-Riʿāya</em>, al-Sulamī's <em>Ḥilyat al-awliyāʾ</em>, and al-Ghazālī's <em>Iḥyāʾ ʿulūm al-dīn</em> (the books on <em>tawāḍuʿ</em> and on <em>kibr</em>/<em>ʿujb</em>) are the theoretical anchors; Annemarie Schimmel and William Chittick for interpretation. Methodologically, Toshihiko Izutsu's ethico-semantic studies of Qur'anic vocabulary are the closest analogue to what you want to do — semantic field analysis of an ethical term in Arabic, done philologically.</li>
-<li><strong>Gender</strong>: humility is heavily gendered in medieval discourse — coded feminine, and simultaneously the virtue through which women authors claim authority. Barbara Newman's <em>From Virile Woman to WomanChrist</em>, Dyan Elliott on bodies and demonology, and Rkia Elaroui Cornell's <em>Rabiʿa from Narrative to Myth</em> (for the Arabic case, and for how humility narratives get constructed retrospectively) are the reference points. Note that your gender variable will partly measure <em>genre and attribution practice</em> rather than authorial psychology — say so explicitly.</li>
-</ul>
-<h4 id="16-pitfalls-to-write-into-your-methodology-section">1.6 Pitfalls to write into your methodology section</h4>
-<p>Lemmatisation error is your largest source of noise, not your sample size. The quotation layer means apparent agreement between authors may be one text; conversely, apparent cross-language agreement may be a shared Latin source translated into both. Anonymous and male-attributed-by-default texts bias the gender axis. And a corpus of 400 pre-selected passages is not a sample of a tradition — it is a sample of your selection criteria, which you should state.</p>
-<hr />
-<h2 id="2-the-pivot-method">2. The pivot method</h2>
-<blockquote>
-<p><strong>Prompt.</strong> What about introducing this heuristic method: provide a human made, as much as possible literal translation into English of all the texts, then explore with classical textometry approach (lemmatization, POS, cooccurrencies, language specificities), use this for building terms taxonomy, then explore term spécificités in relation to gender, time, language — finally go back to the original language and wording. Any literature applying this approach? Evaluation and criticism</p>
-</blockquote>
-<h3 id="answer-1">Answer</h3>
-<h4 id="21-the-method-has-a-name-and-a-known-failure-mode">2.1 The method has a name, and a known failure mode</h4>
-<p>What you describe is <strong>translation-mediated (pivot-language) comparative textometry</strong>. It is legitimate, widely used, and cheaper than the alternatives — but it has one structural defect you must design around: <strong>the pivot does not merely transmit the concepts, it pre-selects them.</strong> Every time you render <em>humilitas</em>, <em>diemuot</em> and <em>tawāḍuʿ</em> with &quot;humility&quot;, you have already asserted a correspondence that is your actual research question. The instrument is biased toward finding convergence, which is exactly the null result you would least like to mistake for a discovery.</p>
-<p>The precise theoretical framing is the <strong>tertium comparationis</strong> problem. Haspelmath's distinction is the one to cite and to obey: <strong>descriptive categories</strong> are language-internal (<em>humilitas</em> as Latin usage defines it, <em>khushūʿ</em> as Qur'anic and Sufi usage defines it), while <strong>comparative concepts</strong> are the analyst's instrument, stipulated for the purpose of comparison. Your English pivot must be declared, in your methodology section, a comparative concept. The moment it is treated as a shared meaning, the study is circular. Levinson and Wilkins's <em>Grammars of Space</em> (2006) is the model for building a comparative concept deliberately — with elicitation &quot;prompts&quot; designed not to smuggle in English categories — and Evans &amp; Levinson's &quot;The Myth of Language Universals&quot; (2009) is the strongest statement of why English lexical semantics is a poor default.</p>
-<h4 id="22-where-the-approach-has-been-applied">2.2 Where the approach has been applied</h4>
-<ul>
-<li><strong>Ethnosemantics and componential analysis</strong> is the direct ancestor: Frake (1964) on translating ethnographic material and decomposing translated terms into semantic features; the French school of Soulignac and Gardin. Its collapse is your warning label — Hymes's and Tyler's critique was that componential analysis imposed the analyst's taxonomy on the data and produced tidy structures no speaker recognised.</li>
-<li><strong>Frame semantics and its multilingual transfer</strong>: Fillmore's frames, FrameNet, and the <em>multilingual FrameNet</em> literature (Boas and colleagues) is the best-documented attempt to carry English-anchored semantic frames into other languages, and the best-documented record of where it fails. Same for WordNet/EuroWordNet/BabelNet: synsets are English lexical groupings, and their hierarchies are not language-neutral.</li>
-<li><strong>Comparable corpora and cross-language retrieval</strong>: Grefenstette's work on building a thesaurus from English–French comparable corpora, Rapp (1995), Fung &amp; Yee (1998), and Sharoff's programme of comparable corpora as an alternative to translation. All of these treat translation as a noisy alignment device, not as a semantic layer — the right stance.</li>
-<li><strong>Multilingual DH and machine translation</strong>: the empirical studies of &quot;MT noise&quot; (Oakes, Foster, Sharoff and colleagues, <em>Machine Translation</em>, 2015) found that translation-induced noise degrades retrieval <em>more</em> than OCR noise does. That finding <em>[answer continued in §3]</em></li>
-</ul>
-<hr />
-<h2 id="3-the-pivot-as-heuristic">3. The pivot as heuristic</h2>
-<blockquote>
-<p><strong>Prompt.</strong> But can we not imagine a pure heuristic use to identify cooccurrences and common 'ideas', bodily positions, practices, attitudes, we would anyway describe in English and compare, not the precise wording?</p>
-</blockquote>
-<h3 id="answer-2">Answer</h3>
-<h4 id="31-yes--and-that-reframing-changes-the-objections-character-entirely">3.1 Yes — and that reframing changes the objection's character entirely</h4>
-<p>Your move is sound, and it's worth being precise about <em>why</em> it works, because it tells you how to build it.</p>
-<p>If the English is the <strong>unit of measurement</strong>, translation bias contaminates your results: you will find convergence because you stipulated it. If the English is a <strong>retrieval and attention device</strong>, the bias no longer produces false conclusions — it produces <em>missed passages</em>. Precision is no longer at stake; only <strong>recall</strong>. That is a much cheaper problem, and it's an engineering problem rather than a validity problem.</p>
-<p>The deeper justification is your own phrase: &quot;not the precise wording.&quot; You are proposing to compare at the level of the <strong>referent</strong> — a body on the ground, a gaze lowered, a refusal of an offered seat, a hand doing a servant's work — rather than at the level of the <strong>sign</strong>. That is the <strong>onomasiological</strong> direction of analysis (from a fixed notion to the forms that express it) rather than the semasiological one (from a fixed form to its meanings), and it is the only direction in which trilingual comparison is possible at all. Trier's field theory is usually read semasiologically, but his <em>Wertbegriff</em> work is really this: fix the experiential content, then watch which lexical items divide it up differently.</p>
-<h4 id="32-literature-that-does-exactly-this">3.2 Literature that does exactly this</h4>
-<ul>
-<li><strong>Co-expression analysis and semantic maps.</strong> This is the closest existing method to what you describe. Haspelmath's semantic-map work (2003) and François's co-expression method (2008) proceed by collecting, for a set of notions, the forms that express them in each language, then using the <em>pattern of co-expression</em> — which notions a single form covers here but not there — to build a language-neutral conceptual network. The translations are indispensable and are never trusted as meanings. Applied to your corpus: the fact that one Arabic form covers both bodily stillness in prayer and social condescension, where German splits them, becomes a structural finding rather than a translation nuisance.</li>
-<li><strong>Haspelmath's comparative vs. descriptive concepts</strong> (2010) remains the citation to keep, but now it supports you: the English annotation is your comparative concept, declared as such.</li>
-<li><strong>The Nijmegen/Max Planck referent-first method</strong>: the <em>Field Manual</em> (Enfield &amp; Levinson, 2006) and Levinson &amp; Wilkins's <em>Grammars of Space</em> (2006). The lesson to steal is the discipline of specifying the situation so finely that no analyst's native-language category can do the work for you.</li>
-<li><strong>Semantic/conceptual tagsets</strong>: Rayson, Leech &amp; Hodges, &quot;The Development of a Semantic/Conceptual Tagset for English Text&quot; (1997) — the title is precisely your problem, and the paper is a candid account of what a conceptual tagset costs. Fillmore &amp; Bakker, &quot;Frame Identification as Annotation&quot; (2010), on annotating frames across languages. And Ide &amp; Véronis (1998) on the &quot;polysemy cut-up&quot;: any sense inventory is an arbitrary slicing of a continuum — which is why the inventory must be yours, small, and documented.</li>
-<li><strong>Annotation as interpretation, disagreement as signal</strong>: Sparck Jones (2003) on what annotation presupposes; Di Eugenio &amp; Joseph (2004) on what inter-annotator disagreement actually measures; Aroyo &amp; Welty (2015) on the myths of annotation ground truth; and the &quot;annotation adiabatic fallacy&quot; line of work (Baddeley, Marchiori, Lascarides and colleagues), whose point is that you cannot observe a category by annotating it without altering it — so annotator uncertainty should be recorded, not averaged away.</li>
-<li><strong>On the body-and-practice layer you want to code</strong>, the substantive framework is already there: Mauss's &quot;Techniques of the Body&quot; (1935) for posture as culturally variable technique rather than natural expression; Elias on the shifting thresholds of shame and repugnance, which matters for your period axis; Bourdieu's <em>habitus</em> for the sedimentation of disposition in gesture. For the Latin/German medieval material specifically, Althoff's work on ritualized submission and self-abasement (<em>deditio</em>) is the most directly relevant: he analyses prostration, weeping, disarmed approach, and self-humiliation as a codified repertoire — which is your &quot;bodily positions&quot; dimension, already theorized, in Latin sources. Buc's <em>The Dangers of Ritual</em> (2001) and Koziol's subsequent critique are the necessary warning: you infer ritual from texts written by people with an agenda about it. Rosenwein's emotional communities for the attitudes, and Bynum on gender, flesh and practice for the women's material. For Arabic, the Sufi <em>ādāb</em> literature (al-Sulamī's <em>Ādāb al-ṣūfiyya</em>) and the discipline sections of the <em>Iḥyāʾ</em> are explicitly manuals of bodily conduct — so your &quot;practice&quot; dimension is not an imposition there either.</li>
-</ul>
-<h4 id="33-what-the-reframing-requires-you-to-change">3.3 What the reframing requires you to change</h4>
-<p><strong>1. The English is an annotation layer, not a text.</strong> Stop thinking &quot;translation of all texts&quot; and start thinking &quot;one controlled annotation per passage, in English, keyed to the source.&quot; That single change buys you versioning, multiple annotators, and disagreement statistics.</p>
-<p><strong>2. Do not normalize the glosses.</strong> Keep every English rendering as produced. The distribution of renderings per source lemma is a measurement of semantic breadth and of where the fields fail to overlap. A term that translators render five different ways is a term with a wide or contested field; a term rendered consistently is a term whose English counterpart genuinely fits. That is a result, and it disappears the moment you standardize.</p>
-<p><strong>3. Measure recall from the source, not from the pivot.</strong> Build the source-language term lists first (the semantic fields), extract all occurrences, then check what proportion your English annotation captured. Inconsistent renderings are your leaks. Report a recall figure; it converts the main objection into a quantified limitation.</p>
-<p><strong>4. Ban the value term from your codes.</strong> The rule that makes the whole thing safe: no code may contain the concept under study. Never code &quot;humility&quot;. Code the components.</p>
-<table>
-<thead>
-<tr><th>Dimension</th><th>Values (illustrative)</th></tr>
-</thead>
-<tbody>
-<tr><td>Locus</td><td>body / will / intellect / affect / speech / status / property / relation to God / relation to others / self-relation</td></tr>
-<tr><td>Bodily component</td><td>prostration, kneeling, head lowered, gaze lowered, silence, sitting low, descending, manual service, refusing an honor, absence of gesture</td></tr>
-<tr><td>Voice</td><td>self-induced / induced by God / imposed by others</td></tr>
-<tr><td>Direction</td><td>vertical-upward / vertical-downward (toward inferiors) / horizontal / reflexive</td></tr>
-<tr><td>Epistemic component</td><td>knowledge of one's faults / knowledge of one's nothingness / ignorance of one's own virtue / refusal to judge</td></tr>
-<tr><td>Structure</td><td>privative (absence of pride) / positive (love of lowness) / relational (deference)</td></tr>
-<tr><td>Visibility</td><td>hidden / performed / performed-against-will</td></tr>
-<tr><td>Valence</td><td>praiseworthy / penal / medicinal / deceptive (false humility) / impossible without grace</td></tr>
-<tr><td>Model</td><td>Christological / monastic-rule / mystical / courtly / prophetic-Sufi / exemplum</td></tr>
-<tr><td>Unclassifiable</td><td>yes — and read all of these</td></tr>
-</tbody>
-</table>
-<p>Your comparison is then a cross-tabulation of language × period × gender × code, not of English term frequencies. That also sidesteps the quotation problem: a quoted passage still <em>reports</em> the same bodily repertoire, so the non-independence issue becomes far less damaging, though you should still model author and text as random effects.</p>
-<h4 id="34-residual-risks-honestly-stated">3.4 Residual risks, honestly stated</h4>
-<p>Three remain. <strong>Granularity is not innocent</strong>: &quot;bodily lowness&quot; is safe, &quot;humility&quot; is not, and the boundary between describing a posture and naming a virtue is where bias re-enters — which is why the frame above is decompositional. <strong>Confirmation bias in the heuristic stage</strong>: a discovery device driven by your own English description finds what you can already conceive, so run one coding pass blind, from the source-language concordances, with no hypotheses in hand, and treat the unclassifiable rate as your measure of how much the frame is imposing. <strong>The language/genre confound survives unchanged</strong>: language is not an independent variable in a medieval corpus, and no annotation scheme fixes that.</p>
-<p>So: adopt it, but as a controlled conceptual annotation with a source-language recall check and un-normalized glosses, not as a translation you later forget.</p>
-<hr />
-<h2 id="4-the-controlled-record-and-machine-assistance">4. The controlled record, and machine assistance</h2>
-<blockquote>
-<p><strong>Prompt.</strong> Develop this &quot;one controlled annotation per passage&quot; what is intended. What about producing those directly from texts using a LLM?</p>
-</blockquote>
-<h3 id="answer-3">Answer</h3>
-<h4 id="41-part-1--what-the-record-actually-is">4.1 Part 1 — What the record actually is</h4>
-<p>&quot;One controlled annotation per passage&quot; means that for each passage you produce a <strong>structured record that is a third object</strong>, neither the source text nor the English rendering, and that every claim in it points back to words in the source. The passage is not the unit of coding — a passage of eight sentences may make four distinct claims about the concept, so you segment into <strong>annotation units</strong> (one predication each), which is the classic unit-of-analysis problem in content analysis that Krippendorff insists on resolving before anything else.</p>
-<p>A record looks like this:</p>
-<table>
-<thead>
-<tr><th>Field</th><th>Content</th><th>Why it matters</th></tr>
-</thead>
-<tbody>
-<tr><td><code>passage_id</code></td><td>stable, never reused</td><td>lets the scheme be revised without losing history</td></tr>
-<tr><td>metadata</td><td>language, century, author, gender + <em>attribution status</em>, genre, text-type layer (theory / rule / exemplum / vision / letter), quoted-source if any</td><td>your comparison axes, plus the quotation layer</td></tr>
-<tr><td><code>source_spans</code></td><td>token-level IDs from the TEI text (DTA/CLARIN word-ID convention)</td><td>the anchor; offsets survive re-encoding</td></tr>
-<tr><td><code>source_lemmata</code></td><td>humility-field lemmata actually present, found by <strong>source-language</strong> search</td><td>this is what makes the record falsifiable</td></tr>
-<tr><td><code>au_id</code> + <code>au_spans</code></td><td>which words license this unit</td><td>no code without evidence</td></tr>
-<tr><td>feature values</td><td>locus, bodily component, voice, direction, epistemic component, structure, visibility, valence, model</td><td>the comparison happens here</td></tr>
-<tr><td><code>evidence_span</code></td><td>verbatim substring + offsets</td><td>machine-checkable</td></tr>
-<tr><td><code>gloss</code></td><td>the annotator's English paraphrase, <strong>un-normalized</strong></td><td>data, not apparatus</td></tr>
-<tr><td><code>uncertainty</code></td><td>confident / ambiguous / unclassifiable, with a note</td><td>your ambiguity signal</td></tr>
-<tr><td><code>annotator</code>, <code>date</code>, <code>scheme_version</code></td><td>provenance</td><td>see below</td></tr>
-</tbody>
-</table>
-<p>Four design decisions carry most of the weight.</p>
-<p><strong>Every dimension needs a definition, a closed value list, a decision rule, and two or three anchored examples.</strong> A dimension without anchored exemplars is not a dimension; it is a suggestion, and two coders will produce two different variables that share a name.</p>
-<p><strong>Distinguish &quot;not mentioned&quot; from &quot;not applicable&quot; from &quot;uncertain&quot;.</strong> Collapsing these three into a blank is the commonest way annotation tables silently corrupt a diachronic comparison, because &quot;not mentioned&quot; is itself a finding.</p>
-<p><strong>Version the scheme and record which version produced each code.</strong> Your scheme <em>will</em> change in month three. If you do not re-code or flag, part of your &quot;13th vs 15th century difference&quot; is an artifact of your own learning.</p>
-<p><strong>Double-code a stratified subsample</strong> (15–20%, stratified by language, century and genre), compute agreement per feature — Krippendorff's α rather than Cohen's κ where categories are skewed or coders differ, since κ is badly distorted by unequal marginals, as Krippendorff's 2011 note on α shows — then adjudicate and revise. Treat first-pass agreement as a <strong>specification test of the scheme</strong>, not as a measurement of the corpus. Expect high agreement on bodily component and low on valence; the low ones are the ones you must either sharpen or drop.</p>
-<p>The output is a table plus a gold set, and both should be deposited with a DOI (CLARIN, DARIAH, Zenodo). The annotation is a research product, not a working file.</p>
-<h4 id="42-part-2--generating-them-with-an-llm">4.2 Part 2 — Generating them with an LLM</h4>
-<p>Yes, do it — but the reason to be careful is not the usual &quot;LLMs hallucinate&quot; objection. It is a statistical one.</p>
-<p><strong>Model error is coherent where human error is scattered.</strong> Ten human annotators drift in ten different directions, so their disagreement is visible in your α and points you at the ambiguous material. A single model makes the <em>same</em> misreading 400 times. That inflates apparent consistency, keeps agreement statistics clean, and hides the bias exactly where you would otherwise detect it. A model that systematically codes <em>obedientia</em> and <em>patientia</em> as humility-relevant because the topic primes it will produce a beautifully consistent corpus that is wrong in one direction. Stochastic-parrots-style critiques make this point in general; here it has a concrete consequence, because consistency is your only defence against the suspicion that the scheme is imposing structure.</p>
-<p><strong>Three specific failure modes for your corpus.</strong></p>
-<p><em>Evidence spans.</em> Asked to name the words licensing a code, a model returns plausible spans that are not there. This is fatal for a source-keyed design. The guardrail is implementable: require verbatim substrings, then <strong>verify programmatically</strong> <em>[answer continued in §5]</em></p>
-<hr />
-<h2 id="5-worked-records">5. Worked records</h2>
-<h3 id="51-prompt--p017-middle-high-german">5.1 Prompt — P017 (Middle High German)</h3>
-<blockquote>
-<p><strong>Prompt.</strong> Give a structured record example from this text</p>
-<p><em>Si sind von unsrem herren fúrkomen in dem segnen der süssikeit, wele götlichen himelsche süssikeit hie in diser zit ervolget wirt mit reinikeit des inneren und des usseren mönschen, mit senftmüttiger demüttikeit des hertzen und der usseren wandlung, mit andechtiger volbringung des götlichen dienstes, mit flissiger nochfolgung oder behaltung des ordens und der gehorsam in lutterer ungestifteter götlicher minn.</em></p>
-</blockquote>
-<p><a href="P017.html" target="_blank"><strong>Record <code>P017</code></strong></a> <em>(structured record omitted from this export — see the full record in the working files)</em></p>
-<h4 id="what-the-record-does-that-a-summary-would-not">What the record does that a summary would not</h4>
-<p><strong>The absence fields carry the argument.</strong> No lowness lexeme, no self-contempt, no antonym. Against the Bernardine and Augustinian tradition, where humility is <em>vera cognitio</em> — knowledge of one's own nothingness — the <code>epistemic_component</code> field reads <code>not_mentioned</code> in all seven units. That is a negative result you can only report if the dimension exists in the scheme and you record blanks as data.</p>
-<p><strong>The bipartition is the author's, not yours.</strong> Units a3 and a4 both split on the same inner/outer axis (<code>des inneren und des usseren mönschen</code> / <code>des hertzen und der usseren wandlung</code>). The scheme surfaces a structural commitment of the text rather than imposing one.</p>
-<p><strong>Humility appears once, in an instrumental phrase, qualified by gentleness.</strong> The passage is about sweetness; humility is one of four means. A topic model or a term-frequency count would rank this passage as humility-saturated. The annotation records its actual function: <code>positive_constitutive</code>, a condition of union, with no penal or medicinal valence anywhere.</p>
-<p><strong>Two things are deliberately left unresolved.</strong> The <code>ervolget</code> ambiguity (attain vs. express) and the <code>ungestiftet</code> tension with the means-frame are logged rather than decided, because resolving them silently would produce a tidy record of a passage that is not tidy.</p>
-<p><strong>On the LLM question, this passage is a good test case.</strong> A model asked to code it will very likely supply an epistemic or self-abasement component that the text does not contain, will render <code>wandlung</code> as &quot;transformation&quot; or &quot;behaviour&quot; without flagging the double resonance, will flatten <code>ungestiftet</code> to &quot;pure&quot;, and will guess an author — Suso or Eckhart — from the vocabulary, which is exactly the attribution error the metadata schema is built to prevent. It would also probably fail to notice that the word for lowness is missing, because absences are not in the text.</p>
-<h3 id="52-prompt--p018-latin">5.2 Prompt — P018 (Latin)</h3>
-<blockquote>
-<p><strong>Prompt.</strong> And same of this</p>
-<p><em>Si, cum hominibus potentibus volumus aliqua suggerere, son praesuminus nisi cum humilitate et reverentia, quanto magis domino deo universorum cum omni humilitate et puritatis devotione supplicandum est. Et non in multiloquio, sed in puritate cordis et conpunctione lacrimarum nos exaudiri sciamus. Et ideo brevis debet esse et pura oratio, nisi forte ex affectu inspirationis divinae gratiae protendatur. In conventu tamen omnino brevietur oratio, et facto signo a priore pariter surgant</em></p>
-</blockquote>
-<p><a href="P018.html" target="_blank"><strong>Record <code>P018</code></strong></a> <em>(structured record omitted from this export)</em></p>
-<h4 id="scheme-feedback-what-this-passage-forced">Scheme feedback (what this passage forced)</h4>
-<p>The frame held, but not unchanged. Recorded as a change log, because an unlogged scheme revision is how a project quietly changes its object:</p>
-<ul>
-<li><strong>Three new dimensions required</strong>: <code>argument_form</code> (a fortiori / exemplum / praeceptum / definitio), <code>speech_act</code> (praeceptum / exhortatio / assertio), <code>grace_override</code> (present / absent, and <em>where</em> in the logical structure). P017 needed none of these — it is declarative and doxological; P018 is an argument and a regulation. Without <code>argument_form</code> you cannot record that Benedict <em>derives</em> divine humility from human deference, which is the single most important thing this passage says.</li>
-<li><strong>Two value lists extended</strong>: <code>epistemic_component</code> gained <code>confidence_of_being_heard</code>; <code>bodily_component</code> gained tears, vocal restraint, synchronized rising, sign gesture; <code>visibility</code> gained <code>synchronized_collective</code>; <code>model</code> gained <code>petitionary_administrative_etiquette</code>.</li>
-<li><strong>One dimension behaved as designed</strong>: <code>structure</code> came out <code>privative</code> or <code>privative_and_positive</code> in all five units, against <code>positive_and_relational</code> in all seven P017 units — and <code>antonym_field_present</code> flipped from <code>not_mentioned</code> to <code>praesumere, multiloquium</code>. The two passages disagree on the same axis, which is what an axis is for.</li>
-</ul>
-<h4 id="what-the-comparison-already-shows">What the comparison already shows</h4>
-<p><strong>The word and the concept come apart.</strong> P017 uses the humility lexeme once and has seven units; P018 uses it twice and has five, of which only two contain it. Mentions and units are only loosely related, so any term-frequency or keyword-keyed method — including one run on the English pivot — would rank these two passages as comparable in humility content when their structures are opposite.</p>
-<p><strong>Two definitions, in the strict sense.</strong> P018 defines humility negatively, as the restraint of presumption, and transfers it to God by analogy from secular petitionary conduct; the concept's content is therefore social deportment all the way down. P017 never mentions presumption, never defines humility negatively, and places it as one of four means within a gift-structure. One is a <em>manner of approach</em>, the other a <em>disposition of spirit</em> — and neither contains the self-evaluative component that the English word &quot;humility&quot; supplies as its default meaning. That is the central finding so far, and it is available precisely because the codes forbid the word.</p>
-<p><strong>The assurance point cuts against the modern intuition.</strong> Benedict pairs total humility with <code>nos exaudiri sciamus</code> — let us <em>know</em> we are heard. Humility here produces epistemic confidence, not self-doubt. If you coded with a modern virtue-theory frame, you would likely score this as low on the very dimension the modern concept centres on.</p>
-<p><strong>The grace-override is a genuine cross-language convergence</strong> — and its differing placement (exception clause inside legislation vs. groundlessness beneath an entire means-chain) is a hypothesis worth testing on the full corpus: does the logical position of the grace clause track genre, or language?</p>
-<p>Two caveats to carry forward. The <code>son/non</code> reading in your excerpt must be collated against a critical edition before this record is trusted, since the negation carries unit b1. And the intertextual echoes are marked as echoes: Cassian and Sirach are the standard source-critical candidates for RB 20, but I have not verified them against the apparatus here, and the de Vogüé–Neufville edition is where that gets settled.</p>
-<h3 id="53-prompt--p019-latin">5.3 Prompt — P019 (Latin)</h3>
-<blockquote>
-<p><strong>Prompt.</strong> And same also for this</p>
-<p><em>humilitas sic descripta imitanda, primo quia sue angustie est paciens tolleratrix; ut matrona a viro suo iniuriose tractata pacienter sustinet ne virum dignum vituperio reddat, and if perchance, from the injury of a beating, a mark appears outwardly for the reproach, she carefully conceals it, asserting that she incurred such harm from elsewhere. Ecclesiastici 2 dicitur: &quot;Aurum et argentum in igne probantur,&quot; etc. Unde Augustinus: &quot;Beati, inquit, humiles qui, etsi quando fieri solet ut iniustas audiant increpaciones, amplius se Christo humilient et minus se audire quam meruerunt proclamant.&quot;</em></p>
-</blockquote>
-<p><a href="P019.html" target="_blank"><strong>Record <code>P019</code></strong></a href="P017.html" target="_blank"> <em>(structured record omitted from this export)</em></p>
-<h4 id="what-this-passage-adds">What this passage adds</h4>
-<p><strong>The gender variable was under-specified in the original design.</strong> Your plan had gender as a property of the <em>author</em>. In P019 author gender is unknown and unusable, while gender is doing the central work <em>inside</em> the text: humility is defined through a woman's beaten body, and the exemplum only persuades because she cannot answer back. So gender needs two fields — author gender, and the gender of the agent and patient in each exemplum. On a corpus of 400 passages this will likely be the single most productive distinction available, because it separates &quot;who writes about humility&quot; from &quot;who is made to embody it&quot;.</p>
-<p><strong>Three concepts, one lemma.</strong> P018 and P019 both use <em>humilitas</em>, and both are Latin, near enough the same period. P018's humility is the restraint of presumption, a deportment of approach learned from petitionary etiquette. P019's is patient endurance of imposed injury plus management of what is said about it. Opposite <code>structure</code> values, opposite <code>voice</code> values, different opposed terms (<em>praesumptio</em> vs <em>iniuria</em>), different bodies (tears and synchronized rising vs a bruise to be hidden). Same word, same language, same era — and the annotation separates them cleanly while a keyword search cannot even rank them.</p>
-<p><strong>The epistemic axis now has three positions.</strong> Absent (P017), inverted into assurance of being heard (P018), and present-but-deliberately-skewed toward overclaiming one's desert (P019). Not one of them is the modern &quot;accurate, modest view of oneself&quot;. If the corpus holds, that is your headline result, and it is a result about the <em>English word</em>, not just about the medieval texts.</p>
-<p><strong>Where an LLM would most plausibly fail here</strong>, and specifically: it would likely code &quot;patience&quot; <em>[answer continued in §6]</em></p>
-<hr />
-<h1 id="layer-conditional-annotation--working-notes">Layer-Conditional Annotation — Working Notes</h1>
-<p><em>Corpus: 400 medieval passages on humility (Latin, Middle High German, Arabic).</em><br /><em>Exported from the working conversation. Code examples omitted.</em></p>
-<hr />
-<h2 id="6-layer-conditional-annotation">6. Layer-conditional annotation</h2>
-<h3 id="prompt">Prompt</h3>
-<blockquote>
-<p>There are different text types in the last passage. Differences in annotation?</p>
-</blockquote>
-<h3 id="answer-4">Answer</h3>
-<h4 id="yes--and-the-difference-is-systematic-not-incidental">Yes — and the difference is systematic, not incidental</h4>
-<p>Coding the three passages produced a pattern I hadn't predicted. Look at where the filled cells actually are.</p>
-<p><strong>The body appears only in the exemplum.</strong> The definition (c1) has no body beyond an abstract &quot;endurance&quot;. The citations have none. The beaten body, the visible bruise, the concealment of the skin — all of it is in the exemplum. The rule is the other body-rich layer (tears, vocal restraint, rising together on a signal), and there too the body is prescribed rather than described.</p>
-<p><strong>The epistemic component appears only in the cited authority.</strong> The text's own definition of humility contains no self-relation at all. The exemplum contains none. The skewed self-assessment — proclaiming you were treated lighter than you deserved — arrives entirely inside the Augustinian quotation. So if you asked &quot;does this text define humility as involving self-knowledge?&quot;, the honest answer is: <em>the author's definition doesn't, the illustration doesn't, the authority does</em>.</p>
-<p><strong>Asymmetry is only ever explicit in the exemplum and in cited beatitude-formulae.</strong> Never in a definition.</p>
-<p><strong>Strategic calculation appears only in the exemplum</strong> (<em>caute dissimulat</em>). No definition in the sample contains a tactical term.</p>
-<p>So each layer has a characteristic profile of what it fills in and what it leaves empty:</p>
-<table>
-<thead>
-<tr><th>dimension</th><th>definition</th><th>rule / praeceptum</th><th>doxology</th><th>exemplum</th><th>citation</th></tr>
-</thead>
-<tbody>
-<tr><td><code>bodily_component</code></td><td>○</td><td>●</td><td>○</td><td>●●</td><td>○/✕</td></tr>
-<tr><td><code>truth_relation</code></td><td>○</td><td>○</td><td>✕</td><td>●</td><td>● (reported)</td></tr>
-<tr><td><code>epistemic_component</code></td><td>○</td><td>●</td><td>○</td><td>○</td><td>●</td></tr>
-<tr><td><code>precondition_asymmetry</code></td><td>✕</td><td>○</td><td>✕</td><td>●</td><td>●</td></tr>
-<tr><td><code>exemplum_agent_gender</code></td><td>✕</td><td>✕</td><td>✕</td><td>●</td><td>✕</td></tr>
-<tr><td><code>strategic</code></td><td>○</td><td>○</td><td>✕</td><td>●</td><td>○</td></tr>
-<tr><td><code>voice</code></td><td>○</td><td>●</td><td>●</td><td>●</td><td>● but cited</td></tr>
-<tr><td><code>direction</code></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
-<tr><td><code>structure</code></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
-<tr><td><code>valence</code></td><td>●</td><td>○</td><td>○</td><td>●</td><td>●</td></tr>
-<tr><td><code>visibility</code></td><td>✕</td><td>●</td><td>○</td><td>●</td><td>○</td></tr>
-<tr><td><code>model</code></td><td>○</td><td>●</td><td>○</td><td>●</td><td>●</td></tr>
-<tr><td><code>argument_form</code></td><td>●</td><td>●</td><td>○</td><td>●</td><td>●</td></tr>
-<tr><td><code>citation_truncation</code></td><td>✕</td><td>✕</td><td>✕</td><td>✕</td><td>●</td></tr>
-<tr><td><code>assertion_commitment</code></td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
-</tbody>
-</table>
-<p>● informative · ○ applicable but absent · ✕ not applicable by layer. This is n=3, so it is a hypothesis about the corpus, not a result in it — but it is a hypothesis with teeth, and it generates four changes.</p>
-<h4 id="1-not-mentioned-is-layer-relative">1. &quot;Not mentioned&quot; is layer-relative</h4>
-<p>This is the one that can wreck a study. If definitions systematically lack an epistemic component while citations systematically carry one, then a corpus-wide frequency of <code>epistemic_component: present</code> measures <strong>your layer distribution</strong>, not the concept. And layer distribution varies by genre, genre varies by language, language varies by religious tradition. Every effect you want to find is downstream of this.</p>
-<p>Two remedies, both cheap. Build the applicability matrix as a real artefact, with three states rather than two, so structural zeros never masquerade as missing data. And never compare a dimension across layers — compare definition to definition, exemplum to exemplum.</p>
-<h4 id="2-layer-specific-required-fields">2. Layer-specific required fields</h4>
-<p>A definition, an exemplum and a citation are not the same kind of thing annotated three times.</p>
-<p>A <strong>definition</strong> needs logical fields the others don't: what is related to what (genus and differentia, or a metaphor, or a paraphrase), positive or negative, intensional or extensional. Note that the definition in the test passage is a reification — humility <em>is a bearer</em> (<em>tolleratrix</em>, a feminine agent noun) — which is a different kind of definition from a genus-differentia one, and the difference is invisible in the current record.</p>
-<p>An <strong>exemplum</strong> needs narrative fields: agent, patient, asymmetry, outcome, whether the agent is named or generic (<em>matrona</em> is generic, which matters — she is a type, not a case), and whether the exemplum is offered as <em>illustrating</em> or as <em>constituting</em>.</p>
-<p>A <strong>citation</strong> needs source-critical fields: attribution status, verbatim or adapted, truncation, and function.</p>
-<h4 id="3-the-exemplum-is-co-definitional-not-decorative">3. The exemplum is co-definitional, not decorative</h4>
-<p>This is the substantive point. The definition says humility patiently bears its own constriction. It says nothing about concealment, nothing about lying about the origin of an injury, nothing about refusing to answer back. The exemplum adds all three. The illustration is therefore <strong>more specific than the definition it illustrates</strong>, which means the definition is underdetermined and the exemplum is where the concept's extension is actually fixed.</p>
-<p>Consequence for corpus design: filtering to &quot;theoretical&quot; passages — keeping the summa material, dropping the exempla — would not give you the concept in its pure form. It would give you the part of it that the theory does not carry. And it would delete the concealment component, which is the most analytically interesting thing in the passage. Record the direction of determination for each exemplum: does it narrow the definition, exceed it, or merely repeat it.</p>
-<h4 id="4-assertion-commitment--the-one-universal-dimension">4. <code>assertion_commitment</code> — the one universal dimension</h4>
-<p>Every unit has a modality, and the current scheme lacks it. In the test passage: the author asserts the definition outright; commits to the exemplum by analogy (<em>ut</em>); reports the scriptural citation as what a book says; and embeds the patristic citation inside <em>inquit</em>, so that the voice speaking is Augustine's, not his.</p>
-<p>That distinction is not pedantry, it is the difference between attributing a concept to an author and attributing to him the act of copying. And the trap in a corpus containing quotations from other authors is blunt: <strong>a quotation may be present to be refuted.</strong> Never let <code>layer: patristic_citation</code> imply endorsement. The field should be <code>author_asserted | author_analogized | author_reported | author_quoted | author_quoted_for_refutation</code>, and the last value has to be assigned by reading the surrounding argument, which means it cannot be delegated to a model.</p>
-<p>Notice what this makes possible. In the three pilot passages, the epistemic component travels with one named authority. Across 400 passages, if the epistemic component keeps attaching to the same carrier, then it is not a feature of the tradition's concept of humility — it is a feature of a transmitted sentence. That is a much better result than a frequency table, and it is only reachable if citation units are annotated as citations.</p>
-<h4 id="the-confound-to-test-before-anything-else">The confound to test before anything else</h4>
-<p>Layer composition is a competing explanation for every language and gender effect you will find. If texts by women, or texts about women, are exemplum-heavy and definition-poor, then &quot;women define humility differently&quot; may be &quot;women's textual forms differ&quot; — and the two are not separable without a first pass that models layer.</p>
-<p>So the analysis order is:</p>
-<ol>
-<li>tabulate layer composition by language, period and author gender;</li>
-<li>if the distributions differ, run the conceptual comparisons <strong>within</strong> layer;</li>
-<li>report any cross-layer effect as a finding about textual form, not about the concept.</li>
-</ol>
-<p>On the model question: layer segmentation is precisely the task where the uniform-bias problem bites hardest. A model will tend to read the passage as one assertion, attribute the Augustinian content to the author, treat the wife as an illustration rather than as content, and miss the truncated Ecclesiasticus clause entirely — and it will make all four errors on every one of your 400 passages, in the same direction. Segment layers by hand on the gold set, and audit model-produced segmentation hardest.</p>
-<p>The applicability matrix is a real deliverable, by the way — small, citable, and the part of your method other people will want.</p>
-<hr />
-<h3 id="prompt-1">Prompt</h3>
-<blockquote>
-<p>Yes <em>(produce the matrix as a methods appendix)</em></p>
-</blockquote>
-<h3 id="answer-5">Answer</h3>
-<h1 id="appendix--layer-conditional-annotation-scheme-lcas">Appendix — Layer-Conditional Annotation Scheme (LCAS)</h1>
-<p><em>Version 0.5 · pilot basis: three records (P017, P018, P019) · status: hypothesis-bearing, not validated</em></p>
-<h2 id="a-the-three-state-rule">A. The three-state rule</h2>
-<p>Every cell of the layer × dimension matrix must be in exactly one state. Empty cells are prohibited.</p>
-<table>
-<thead>
-<tr><th>State</th><th>Name</th><th>Meaning</th><th>Statistical treatment</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>C</strong></td><td>Applicable, coded</td><td>The dimension applies to this layer and a value from the closed list was assigned</td><td>Numerator and denominator</td></tr>
-<tr><td><strong>A</strong></td><td>Applicable, absent</td><td>The dimension applies; the value assigned is <code>not_mentioned</code></td><td>Denominator only. <strong>A substantive finding</strong></td></tr>
-<tr><td><strong>N/A</strong></td><td>Not applicable by layer</td><td>The dimension is undefined for this layer; structural zero</td><td><strong>Excluded from the denominator entirely</strong></td></tr>
-</tbody>
-</table>
-<p>Four governing rules.</p>
-<ol>
-<li><strong><code>N/A</code> is a scheme-level claim, not a coding decision.</strong> An annotator may never assign <code>N/A</code> ad hoc. If a dimension appears genuinely inapplicable to a particular unit inside an otherwise-applicable layer, code <code>A</code> and add a note. Repeated notes are the signal that the matrix is wrong, and they trigger rule 3.</li>
-<li><strong><code>A</code> is data; <code>N/A</code> is not.</strong> Collapsing them is the single most damaging error available in this design, because it converts a claim about the tradition (&quot;definitions here do not mention self-knowledge&quot;) into an artefact of the instrument.</li>
-<li><strong>Escalation rule.</strong> Any cell where the matrix predicts <code>A</code> but three or more units return <code>C</code> — or the reverse — goes to scheme review before further coding. That pattern means the layer boundary is wrong, not the annotator.</li>
-<li><strong>Dual reporting.</strong> For every dimension, report both the share of <em>applicable</em> cells coded <code>C</code> and the share of <em>all</em> cells coded <code>C</code>. Where the two measures agree, the contrast is robust. Where they diverge, you have a layer-composition artefact and must report the divergence, not the finding.</li>
-</ol>
-<h2 id="b-layer-definitions">B. Layer definitions</h2>
-<table>
-<thead>
-<tr><th>Code</th><th>Layer</th><th>Diagnostic</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>L1</strong></td><td><code>definitio</code></td><td>States or claims to state what humility is. Includes the <em>claim</em> without the content (<em>sic descripta</em>)</td></tr>
-<tr><td><strong>L2</strong></td><td><code>praeceptum</code></td><td>Regulates conduct; legislative or rule-form; force comes from the speaker's office</td></tr>
-<tr><td><strong>L3</strong></td><td><code>expositio</code></td><td>Doctrinal exposition and reasoning without legislative force</td></tr>
-<tr><td><strong>L4</strong></td><td><code>doxologia</code></td><td>Declarative-praise or meditative description; asserts how things are, not what to do</td></tr>
-<tr><td><strong>L5</strong></td><td><code>exemplum</code></td><td>A narrative instance with at least one agent and one patient, offered as informative</td></tr>
-<tr><td><strong>L6</strong></td><td><code>citatio_sacra</code></td><td>Reported speech of scripture</td></tr>
-<tr><td><strong>L7</strong></td><td><code>citatio_aliorum</code></td><td>Reported speech of a named or anonymous authority (father, philosopher, Sufi master, fellow author)</td></tr>
-<tr><td><strong>L8</strong></td><td><code>usus</code></td><td>Residual: the term occurs with no definitional, prescriptive, illustrative or citational function — bare manner adverbial, liturgical formula, collocation</td></tr>
-</tbody>
-</table>
-<p><strong>L8 exists on purpose.</strong> Without a residual category, annotators force bare usages into L1 or L3, which inflates the apparent definitional density of the corpus. L8 is also a diagnostic: a high L8 rate means the corpus is being asked to carry material it cannot support.</p>
-<h2 id="c-the-matrix">C. The matrix</h2>
-<p><code>C</code> applicable-coded · <code>A</code> applicable-absent · <code>—</code> not applicable · <code>(e)</code> value evidenced in the pilot records</p>
-<table>
-<thead>
-<tr><th>Dimension</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th></tr>
-</thead>
-<tbody>
-<tr><td><code>bodily_component</code></td><td>A(e)</td><td>C(e)</td><td>A</td><td>C(e)</td><td><strong>C(e)</strong></td><td>A</td><td>A</td><td>A</td></tr>
-<tr><td><code>truth_relation</code></td><td>A</td><td>A</td><td>A</td><td>A</td><td><strong>C(e)</strong></td><td>C</td><td>C(e)</td><td>—</td></tr>
-<tr><td><code>epistemic_component</code></td><td>A(e)</td><td>C(e)</td><td>A</td><td>A(e)</td><td>A(e)</td><td>C</td><td><strong>C(e)</strong></td><td>—</td></tr>
-<tr><td><code>precondition_asymmetry</code></td><td>—</td><td>A</td><td>—</td><td>—</td><td><strong>C(e)</strong></td><td>A</td><td>C(e)</td><td>—</td></tr>
-<tr><td><code>gender_agent</code> / <code>gender_patient</code></td><td>—</td><td>A</td><td>—</td><td>A</td><td><strong>C(e)</strong></td><td>A</td><td>A</td><td>—</td></tr>
-<tr><td><code>strategic</code></td><td>A</td><td>A</td><td>A</td><td>—</td><td><strong>C(e)</strong></td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td><code>voice</code></td><td>C</td><td>C(e)</td><td>C</td><td>C(e)</td><td>C(e)</td><td>C†</td><td>C†</td><td>A</td></tr>
-<tr><td><code>direction</code></td><td>C</td><td>C</td><td>C</td><td>C</td><td>C</td><td>C</td><td>C</td><td>A</td></tr>
-<tr><td><code>structure</code></td><td>C(e)</td><td>C(e)</td><td>C</td><td>C(e)</td><td>C(e)</td><td>C</td><td>C</td><td>A</td></tr>
-<tr><td><code>valence</code></td><td>C(e)</td><td>C(e)</td><td>C</td><td>A</td><td>C(e)</td><td>C</td><td>C</td><td>A</td></tr>
-<tr><td><code>visibility</code></td><td>—</td><td>C(e)</td><td>A</td><td>C(e)</td><td>C(e)</td><td>A</td><td>C</td><td>—</td></tr>
-<tr><td><code>model</code></td><td>A</td><td>C(e)</td><td>A</td><td>C(e)</td><td>C(e)</td><td>C</td><td>C</td><td>—</td></tr>
-<tr><td><code>argument_form</code></td><td>C</td><td>C</td><td>C</td><td>A</td><td>C</td><td>C</td><td>C</td><td>A</td></tr>
-<tr><td><code>citation_truncation</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><strong>C</strong></td><td><strong>C(e)</strong></td><td>—</td></tr>
-<tr><td><code>attribution_status</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><strong>C</strong></td><td><strong>C(e)</strong></td><td>—</td></tr>
-<tr><td><code>assertion_commitment</code></td><td><strong>C</strong></td><td><strong>C</strong></td><td><strong>C</strong></td><td><strong>C</strong></td><td><strong>C</strong></td><td><strong>C</strong></td><td><strong>C</strong></td><td><strong>C</strong></td></tr>
-<tr><td><code>grace_override</code></td><td>A</td><td>C(e)</td><td>A</td><td>C(e)</td><td>A</td><td>A</td><td>A</td><td>—</td></tr>
-</tbody>
-</table>
-<p>† In L6 and L7, <code>voice</code> describes the <em>cited</em> voice, not the author's. Read together with <code>assertion_commitment</code>, never alone.</p>
-<p><strong>Reading the matrix.</strong> The body is informative in rules and exempla, not in definitions. The epistemic component is informative in citations and rules, not in definitions or exempla. Asymmetry and gender are informative in exempla. Truncation and attribution status exist nowhere else. <code>assertion_commitment</code> is the only dimension that is unconditional — every unit, in every layer, has a modality of assertion.</p>
-<p><strong>One correction from the pilot.</strong> In the definition unit of the third record, <code>bodily_component</code> was coded as present. On audit this was over-coding: the definition contains no body term, and the endurance is predicated of the virtue, not of a body. Corrected to <code>A</code>. This is the expected failure mode — annotators (and models) import the body from the neighbouring exemplum into the definition. The matrix row for L1 should be treated as a standing warning against contamination by adjacency.</p>
-<h2 id="d-required-field-checklists-per-layer">D. Required-field checklists per layer</h2>
-<h3 id="l1-definitio">L1 <code>definitio</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>structure</code>; <code>valence</code>; <code>argument_form</code>; <strong>new field</strong> <code>definiens_type</code> ∈ {genus-differentia, paraphrase, synonym, metaphor or reification, negative definition, extensional list, scriptural quotation-as-definition}.<br /><strong>Code if present:</strong> <code>epistemic_component</code>, <code>bodily_component</code> — expect <code>A</code> frequently; that is the finding, do not fill it in.<br /><strong>Never code:</strong> <code>citation_truncation</code>, <code>gender_agent</code>, <code>precondition_asymmetry</code>.<br /><strong>Escalate if:</strong> the definiendum is a hypostasis (<em>humilitas est tolleratrix</em>) more than once — the <code>definiens_type</code> list may need a reification sub-type.<br /><strong>Note:</strong> a passage may <em>claim</em> to define without containing a definition (<em>sic descripta</em>, referent outside the excerpt). Code <code>definiens_type: absent_referenced_elsewhere</code> and set <code>context_gap</code>. Do not reconstruct the missing definition.</p>
-<h3 id="l2-praeceptum">L2 <code>praeceptum</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>bodily_component</code>; <code>visibility</code>; <code>model</code>; <strong>new fields</strong> <code>sanction_present</code> (yes/no/unknown) and <code>addressee_scope</code> ∈ {individual, community, novice, superior}.<br /><strong>Code if present:</strong> <code>grace_override</code> and, if present, <strong>where in the logical structure</strong> the exception sits (exception clause, framing clause, none). The rule passage and the doxological passage place the grace clause differently; that placement is the variable.<br /><strong>Never code:</strong> <code>citation_truncation</code>, <code>gender_patient</code>.<br /><strong>Escalate if:</strong> a rule appears to describe rather than prescribe — likely L3 or L4 misassignment.</p>
-<h3 id="l3-expositio">L3 <code>expositio</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>argument_form</code> (this is the layer where <code>argument_form</code> earns its place: a fortiori, distinction, syllogism, objection-and-reply).<br /><strong>Code if present:</strong> everything else.<br /><strong>Never code:</strong> <code>citation_truncation</code>, <code>precondition_asymmetry</code>, <code>gender_agent</code>.<br /><strong>Note:</strong> L3 and L1 are distinguished by whether a definiens is offered, not by difficulty.</p>
-<h3 id="l4-doxologia">L4 <code>doxologia</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>voice</code> (divine initiative vs human activity — the load-bearing field here); <code>direction</code>; <code>structure</code>.<br /><strong>Code if present:</strong> <code>bodily_component</code>, <code>visibility</code>, <code>model</code>.<br /><strong>Never code:</strong> <code>strategic</code>, <code>citation_truncation</code>, <code>precondition_asymmetry</code>, <code>gender_agent</code>.<br /><strong>Escalate if:</strong> <code>strategic</code> is repeatedly requested — the unit is probably L5.</p>
-<h3 id="l5-exemplum">L5 <code>exemplum</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>gender_agent</code>; <code>gender_patient</code>; <code>precondition_asymmetry</code>; <code>bodily_component</code>; <strong>new field</strong> <code>exemplum_function</code> ∈ {illustrates a prior definition, <strong>exceeds</strong> it (adds content the definition lacks), contradicts it, stands alone}; <strong>new field</strong> <code>agent_specificity</code> ∈ {named individual, named type, anonymous type} (the <em>matrona</em> is an anonymous type, which is why she generalises); <code>outcome</code> (stated / withheld).<br /><strong>Code if present:</strong> <code>truth_relation</code>, <code>strategic</code>, <code>visibility</code>.<br /><strong>Never code:</strong> <code>citation_truncation</code>.<br /><strong>Escalate if:</strong> <code>exemplum_function: exceeds</code> recurs. If exempla systematically out-specify their definitions, then &quot;definition&quot; is the wrong centre of gravity for the whole project and the corpus's conceptual content is located in narrative.</p>
-<h3 id="l6-citatio-sacra--l7-citatio-aliorum">L6 <code>citatio_sacra</code> / L7 <code>citatio_aliorum</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code> ∈ {quoted_and_endorsed, quoted_and_adapted, quoted_for_refutation, quoted_uncertain}; <code>attribution_status</code> ∈ {verified, plausible, unverified, pseudo-epigraphic}; <code>citation_form</code> ∈ {verbatim, adapted, paraphrased, chapter_only, sigla_only}; <code>citation_truncation</code> (yes/no) and, if yes, <strong>whether the omitted material is the material that carries the concept</strong> (in the test passage the ellipsis deletes the half of Ecclesiasticus 2:5 that names humiliation); <code>citation_function</code> ∈ {warrant, objection, definition-by-proxy, ornament}.<br /><strong>Code if present:</strong> <code>epistemic_component</code>, <code>truth_relation</code> — but read as <em>reported</em>, never as the author's position.<br /><strong>Never code:</strong> <code>bodily_component</code> as an attribute of the author's view; <code>precondition_asymmetry</code> without checking whether it is inherited from the source.<br /><strong>Hard rule:</strong> no citation unit may be counted as evidence for the author's own conception unless <code>assertion_commitment</code> is <code>endorsed</code> or <code>adapted</code>. <code>definition-by-proxy</code> is a distinct phenomenon and should be tabulated separately — it is how a tradition imports components it does not generate.<br /><strong>Escalate if:</strong> <code>attribution_status: unverified</code> exceeds a threshold set in advance (suggest 20%). Above that, the corpus's authority structure cannot be analysed until source work is done.</p>
-<h3 id="l8-usus">L8 <code>usus</code></h3>
-<p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>structure</code>; <code>direction</code>.<br /><strong>Everything else:</strong> <code>A</code> or <code>N/A</code>.<br /><strong>Note:</strong> L8 units are retained for the recall audit and for collocation work, and excluded from all conceptual contrasts.</p>
-<h2 id="e-operational-rules">E. Operational rules</h2>
-<ol>
-<li><strong>Declare the layer first, on the unit, before coding any dimension.</strong> Layer is assigned per annotation unit, not per passage: the test passage contains one unit of each of L1, L3, L5, L6, L7.</li>
-<li><strong>One unit, one layer.</strong> Where a unit genuinely mixes functions (a definition that <em>is</em> a scriptural quotation), assign the citational layer and set <code>citation_function: definition_by_proxy</code>. Do not create hybrid layers.</li>
-<li><strong>Stratified reliability, not uniform.</strong> Do not spread the double-coding budget evenly. Layer assignment propagates to every downstream cell, so double-code <strong>100% of L1, L5, L6 and L7 units</strong> and a 15% random sample of L2–L4 and L8. Measure layer agreement <em>before</em> any dimension agreement: if annotators cannot agree on what is an exemplum and what is a definition, the rest of the table is unstable and no reliability figure on the other dimensions means anything.</li>
-<li><strong>Target agreement, set in advance.</strong> Krippendorff's α ≥ 0.80 for <code>layer</code>, <code>assertion_commitment</code>, <code>structure</code>; ≥ 0.67 for <code>bodily_component</code>, <code>model</code>, <code>valence</code>; no threshold for <code>epistemic_component</code> in the pilot — record the observed value and treat low agreement there as evidence that the dimension needs decomposition.</li>
-<li><strong>Re-code on scheme change, or flag.</strong> Any unit coded under an earlier matrix version carries <code>scheme_version</code>. Never mix versions in one table without reporting the split.</li>
-<li><strong>The pivot never determines the layer.</strong> Layer is assigned from the source text. A translation that reads smoothly will make exempla look like assertions and citations look like the author's own view — which is precisely the error this appendix exists to prevent.</li>
-</ol>
-<h2 id="f-analysis-rules">F. Analysis rules</h2>
-<ol>
-<li><strong>No cross-layer contrasts on any dimension.</strong> Compare L1 with L1, L5 with L5.</li>
-<li><strong>Layer composition is modelled first.</strong> Tabulate layer × language, × period, × author gender before any conceptual contrast. If the distributions differ — and they will — every subsequent comparison runs within layer or with layer as a fixed effect.</li>
-<li><strong>Report layer composition as a finding in its own right.</strong> If texts by women, or texts whose exempla are female, are exemplum-heavy and definition-poor, then a &quot;gender difference in the concept of humility&quot; is partly a claim about textual form. The two are separable only by this step.</li>
-<li><strong>Attribute components to carriers.</strong> Because L6/L7 units are annotated with <code>attribution_status</code> and <code>citation_function</code>, conceptual components can be traced to the authorities that transmit them. If the epistemic component attaches repeatedly to the same cited source across the corpus, it is a property of a transmitted sentence, not of the tradition's concept. This is the analysis the layer structure makes possible and that no frequency method can perform.</li>
-<li><strong>Denominators.</strong> All percentages computed over applicable cells only (<code>C</code> + <code>A</code>). Report the applicable-cell count alongside every percentage, and report the <code>N/A</code> count so readers can see what was excluded.</li>
-</ol>
-<h2 id="g-change-log-format">G. Change log format</h2>
-<table>
-<thead>
-<tr><th>Field</th><th>Content</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>added</strong></td><td><code>truth_relation</code>, <code>precondition_asymmetry</code>, <code>gender_agent</code>, <code>gender_patient</code>, <code>layer</code>, <code>citation_truncation</code>, <code>assertion_commitment</code></td></tr>
-<tr><td><strong>moved</strong></td><td><code>text_type</code> from passage level to unit level</td></tr>
-<tr><td><strong>new values</strong></td><td><code>probative_trial</code>; <code>imposed_by_others_endured</code>; <code>injury_mark</code>, <code>pain_endurance</code>, <code>concealment_of_body</code>; <code>self_accusation_overclaiming_desert</code>, <code>deliberate_misstatement</code>, <code>confidence_of_being_heard</code>; <code>exemplum_domestic</code>, <code>imitatio_Christi</code>, <code>definition_claim</code>, <code>petitionary_administrative_etiquette</code>; <code>hidden</code></td></tr>
-<tr><td><strong>corrected</strong></td><td>definition unit of P019, <code>bodily_component</code> C → A (adjacency contamination)</td></tr>
-<tr><td><strong>open</strong></td><td><code>epistemic_component</code> may need decomposition into self-assessment / other-assessment / assessment-of-desert</td></tr>
-</tbody>
-</table>
-<p>Two limits to state in the appendix itself. The matrix is derived from three passages, so it is a prediction to be tested against the first hundred units, not a validated instrument — expect the escalation rule to fire. And the whole scheme inherits the assumption that <code>definitio</code>, <code>exemplum</code> and <code>citatio</code> are stable categories across Latin, German and Arabic textual traditions.</p>
-<h2 id="h-cross-language-limits-of-the-layer-set">H. Cross-language limits of the layer set</h2>
-<p>The eight layers are derived from Latino-Christian textual practice. Three of them are likely to behave differently elsewhere.</p>
-<p><strong><code>citatio</code> may not be a stable category.</strong> In the Latin corpus, <code>attribution_status</code> is a modern imposition: texts claim authority without naming it, and the critic supplies the source afterwards. In Arabic Islamic practice attribution is <em>constitutive</em> — the isnād is part of the text's epistemic form, not an editorial addition. So a field designed as philological housekeeping is, in that tradition, a feature of the genre itself. Expect <code>attribution_status</code> to be systematically resolvable in Arabic and systematically unresolvable in Latin, which makes it useless as a cross-language variable and useful as a within-language one.</p>
-<p><strong><code>definitio</code> is probably over-developed in Arabic, not under-developed.</strong> Kalām and falsafa carry an explicit theory of <em>taʿrīf</em> — <em>ḥadd</em> (real definition, genus and differentia) against <em>rasm</em> (nominal description) — with stated conditions on admissibility. The Latin corpus of the same centuries is less explicit. So <code>definiens_type</code> needs at least the real/nominal split, and the German corpus may need the opposite correction: vernacular mystical prose is often deliberately non-propositional, and the same author can produce a scholastic layer profile in Latin and an entirely different one in German. That is a warning for the language variable in its strongest form — if layer profile is partly a function of which textual forms a language makes available, then &quot;the German concept of humility differs&quot; is partly &quot;German had no vernacular summa.&quot;</p>
-<p><strong>Two layers may collapse, and one is missing.</strong> A Qurʾānic quotation inside a Sufi text frequently functions as invocation rather than as warrant, so <code>doxologia</code> and <code>citatio_sacra</code> can merge, and <code>citation_function</code> needs a value like <em>performative</em> that the Latin material never requires. Conversely the Arabic corpus will contain witness verse (<em>shāhid</em>) — poetry cited as normative and linguistic authority — which has no counterpart in the Latin set and will otherwise be dumped into <code>usus</code>.</p>
-<p><strong>The exemplum may invert by default.</strong> The Latin <em>exemplum</em> proves a prior statement. The Sufi <em>ḥikāya</em> is often designed to unsettle the reader's grip on the proposition it follows. If so, <code>exemplum_function: exceeds</code> — flagged as an escalation trigger — will be the norm in Arabic rather than the anomaly, and the escalation rule must be calibrated per language or it will fire continuously and mean nothing.</p>
-<p><strong>The remedy is not to relativise the scheme.</strong> Keep the layer set fixed as a comparative concept, in Haspelmath's sense: an instrument stipulated by the analyst, never a category the texts share. Add one field, <code>layer_local_label</code>, recording what the tradition itself calls the thing — <em>taʿrīf</em>, <em>ḥikāya</em>, <em>shāhid</em>, <em>exemplum</em> — and record its absence where there is no word. Cross-language comparison then runs on the fixed set, and the divergence between the fixed set and the local labels becomes a result rather than a breakdown.</p>
-<p><strong>Falsifiable prediction to carry into the first hundred units:</strong> the distribution of layers differs significantly by language, and the epistemic component's attachment to <code>citatio_aliorum</code> replicates across Latin and German but not across Arabic. If the first part fails, the layer structure is not doing work. If only the second fails, you have found a genuine conceptual difference rather than a formal one — which is the outcome you want, and the one this design is capable of distinguishing.</p>
-<hr />
-<h3 id="prompt-2">Prompt</h3>
-<blockquote>
-<p>Finish former interrupted conversation</p>
-</blockquote>
-<h3 id="answer-6">Answer</h3>
-<p>…material is where that assumption will be tested first, and it may not survive intact.</p>
-<h2 id="h-cross-language-limits-of-the-layer-set-1">H. Cross-language limits of the layer set</h2>
-<p>The eight layers are derived from Latino-Christian textual practice. Three of them are likely to behave differently elsewhere.</p>
-<p><strong><code>citatio</code> may not be a stable category.</strong> In the Latin corpus, <code>attribution_status</code> is a modern imposition: texts claim authority without naming it, and the critic supplies the source afterwards. In Arabic Islamic practice attribution is <em>constitutive</em> — the isnād is part of the text's epistemic form, not an editorial addition. So a field I designed as philological housekeeping is, in that tradition, a feature of the genre itself. Expect <code>attribution_status</code> to be systematically resolvable in Arabic and systematically unresolvable in Latin, which makes it useless as a cross-language variable and useful as a within-language one.</p>
-<p><strong><code>definitio</code> is probably over-developed in Arabic, not under-developed.</strong> Kalām and falsafa carry an explicit theory of <em>taʿrīf</em> — <em>ḥadd</em> (real definition, genus and differentia) against <em>rasm</em> (nominal description) — with stated conditions on admissibility. The Latin corpus of the same centuries is less explicit. So <code>definiens_type</code> needs at least the real/nominal split, and the German corpus may need the opposite correction: vernacular mystical prose is often deliberately non-propositional, and the same author can produce a scholastic layer profile in Latin and an entirely different one in German. That is a warning for your language variable in its strongest form — if layer profile is partly a function of which textual forms a language makes available, then &quot;the German concept of humility differs&quot; is partly &quot;German had no vernacular summa.&quot;</p>
-<p><strong>Two layers may collapse, and one is missing.</strong> A Qurʾānic quotation inside a Sufi text frequently functions as invocation rather than as warrant, so <code>doxologia</code> and <code>citatio_sacra</code> can merge, and <code>citation_function</code> needs a value like <em>performative</em> that the Latin material never requires. Conversely the Arabic corpus will contain witness verse (<em>shāhid</em>) — poetry cited as normative and linguistic authority — which has no counterpart in the Latin set and will otherwise be dumped into <code>usus</code>.</p>
-<p><strong>The exemplum may invert by default.</strong> The Latin <em>exemplum</em> proves a prior statement. The Sufi <em>ḥikāya</em> is often designed to unsettle the reader's grip on the proposition it follows. If so, <code>exemplum_function: exceeds</code> — which I flagged as an escalation trigger — will be the norm in Arabic rather than the anomaly, and the escalation rule must be calibrated per language or it will fire continuously and mean nothing.</p>
-<p><strong>The remedy is not to relativise the scheme.</strong> Keep the layer set fixed as a comparative concept, in Haspelmath's sense: an instrument stipulated by the analyst, never a category the texts share. Add one field, <code>layer_local_label</code>, recording what the tradition itself calls the thing — <em>taʿrīf</em>, <em>ḥikāya</em>, <em>shāhid</em>, <em>exemplum</em>, and its German equivalents — and record its absence where there is no word. Cross-language comparison then runs on the fixed set, and the divergence between the fixed set and the local labels becomes a result rather than a breakdown.</p>
-<p><strong>Falsifiable prediction to carry into the first hundred units:</strong> the distribution of layers differs significantly by language, and the epistemic component's attachment to <code>citatio_aliorum</code> replicates across Latin and German but not across Arabic. If the first part fails, the layer structure is not doing work. If only the second fails, you have found a genuine conceptual difference rather than a formal one — which is the outcome you want, and the one this design is capable of distinguishing.</p>
-<p>The two artefacts still outstanding are the coding manual with anchored exemplars for each dimension (the thing that makes α reachable), and the source-lemma recall protocol.</p>
-<hr />
-<h2 id="outstanding-artefacts">Outstanding artefacts</h2>
-<ol>
-<li><strong>Coding manual</strong> — anchored exemplars for each dimension, per layer, the condition for inter-annotator agreement to be reachable at all.</li>
-<li><strong>Source-lemma recall protocol</strong> — the procedure that converts the pivot-translation objection from a validity problem into a measured limitation.</li>
-</ol>
-<h1 id="conclusion">Conclusion</h1>
-<p>Then a short close on what now stands.</p>
-<p>The methodological spine is settled. English functions as a comparative concept in Haspelmath's sense — declared, documented, never a descriptive category shared by <em>humilitas</em>, <em>diemuot</em> and <em>tawāḍuʿ</em>. Its use is heuristic, so precision is safe and recall is the only quantity that must be measured, from the source lemmata rather than from the pivot. The instrument is a source-keyed annotation decomposed into units, with the layer declared before any dimension is coded, and with three states rather than two so that &quot;the text does not say this&quot; never collapses into &quot;the scheme does not ask here.&quot;</p>
-<p>What three passages already established, provisionally: the same lemma carries opposite structures in two Latin texts of the same period; the epistemic component is absent from definitions and present in citations; the body appears only in rules and exempla; an exemplum can out-specify the definition it illustrates, so filtering to doctrinal material would delete the concept's content; gender must be coded twice, for the author and for the agent inside the exemplum; and layer composition is a standing competing explanation for every language and gender effect the corpus will produce.</p>
-<p>Three items are open and they are philological, not computational: the <code>son</code>/<code>non</code> reading in P018, the unverified Augustinian attribution in P019, and the truncated Ecclesiasticus clause. Two of them carry an entire annotation unit, so they should be settled against critical editions before the gold set is coded.</p>
-<p>The scheme is n=3. It is a prediction to be tested against the first hundred units, and the escalation rule should be expected to fire.</p>
+    <h1 id="studying-humility-in-a-trilingual-medieval-corpus">Studying Humility in a Trilingual Medieval Corpus</h1>
+    <h3 id="methodological-dialogue--digital-methods-conceptual-history-and-layer-conditional-annotation">Methodological
+        dialogue — digital methods, conceptual history, and layer-conditional annotation</h3>
+    <p><em>Participants: Francesco Beretta (researcher) and Euria (AI assistant). Exported 15 November 2026.</em></p>
+    <p><strong>Contents</strong></p>
+    <ol>
+        <li>General overview: conceptual history, digital pipeline, and literature</li>
+        <li>The English pivot: evaluation and criticism</li>
+        <li>The pivot as heuristic — and the referent-level comparison it licenses</li>
+        <li>The controlled annotation record, and LLM-generated annotation</li>
+        <li>Worked records: P017 (Middle High German), P018 (Latin), P019 (Latin)</li>
+        <li>Layer-conditional annotation: differences by text type</li>
+        <li>Appendix — Layer-Conditional Annotation Scheme (LCAS)</li>
+        <li>Cross-language limits of the layer set</li>
+    </ol>
+    <hr />
+    <h2 id="1-corpus-and-research-question">1. Corpus and research question</h2>
+    <blockquote>
+        <p><strong>Prompt.</strong> I have a corpus of 400 passages, two to ten sentences each, extracted from different
+            medieval texts and authors in Latin, German, arab. They contain theory, practice, examples and quotations
+            from others authors. I want to study the different notions of humility and ways of defining it in the
+            corpus, with common elements and differences according to language, time gender of the author.</p>
+        <p>How to proceed with digital methods and what literature exists in this domain of conceptual history? Give
+            first general overview</p>
+    </blockquote>
+    <h3 id="answer">Answer</h3>
+    <h4 id="11-what-you-are-actually-doing">1.1 What you are actually doing</h4>
+    <p>Your project sits at the intersection of three traditions, and naming them will shape every methodological
+        choice:</p>
+    <ul>
+        <li><strong>Conceptual history (<em>Begriffsgeschichte</em>)</strong>, in the lineage of the <em>Geschichtliche
+                Grundbegriffe</em> (Brunner, Conze, Koselleck, 1972–1997), where a concept is not a stable meaning but a
+            <em>Sattelbegriff</em> — a saddle term carrying competing social experiences across time. Koselleck's
+            <em>Futures Past</em> and Melvin Richter's synthesis (&quot;Conceptual History and Political Theory,&quot;
+            <em>History and Theory</em>, 1995) are the entry points.</li>
+        <li><strong>The Cambridge school</strong> (Skinner, &quot;Meaning and Understanding in the History of
+            Ideas,&quot; 1969; Pocock, <em>Politics, Language and Time</em>, 1971), which insists you ask <em>what
+                someone was doing</em> in defining humility — prescribing, polemicising, claiming authority — rather
+            than extracting a definition.</li>
+        <li><strong>Semantic field theory</strong> (Jost Trier, 1931), which is indispensable here: humility has no
+            meaning outside its field (pride, obedience, lowliness, poverty, meekness, contempt of self) and its
+            oppositions. For the Middle Ages specifically, Rudolf Suntrup's work on courtly and monastic
+            <em>Wertbegriffe</em> (value concepts) is the model for applying field analysis to medieval vocabularies.
+        </li>
+    </ul>
+    <p>The relevant debate today is whether &quot;conceptual history&quot; should be replaced by a &quot;history of
+        concepts&quot; — see the Stanford <strong>History of Concepts</strong> project (Dan Edelstein et al.) and the
+        journal <em>Contributions to the History of Concepts</em> (ECSA).</p>
+    <h4 id="12-the-corpus-as-data-design-before-computation">1.2 The corpus as data: design before computation</h4>
+    <p>Your four variables are language, period, author gender, and — you mentioned it almost in passing — <strong>text
+            type</strong> (theory / practice / example / quotation). That last one is not a footnote. A definition in a
+        summa, an exemplum, and a quotation of Augustine do not perform the same act, and quotations mean your corpus is
+        a <em>network</em>, not a list: the same passage circulating under different authors is your best evidence for
+        what counted as an authority on humility. Plan for citation/text-reuse detection from the start (tools such as
+        CiteMatch from Huygens ING, or general text-reuse pipelines).</p>
+    <p>Concretely, encode each passage in TEI with a controlled metadata block: language, century (and, where possible,
+        decade), provenance, author gender (with an explicit field for <em>attributed</em> vs. <em>attested</em> gender,
+        and for anonymous texts — do not silently drop them), genre, text-type layer, and, crucially, <strong>whether
+            the passage is original, adapted, or quoted, and from whom</strong>. This metadata is what makes the
+        comparative matrix possible later; no algorithm will recover it.</p>
+    <h4 id="13-a-staged-pipeline">1.3 A staged pipeline</h4>
+    <p><strong>Stage 1 — <mark class="highlight">Define the semantic fields, by hand, per language.</strong></mark> Do not let a tool discover the
+        field for you. For each language, write out the core term, near-synonyms, and antonyms:</p>
+    <table>
+        <thead>
+            <tr>
+                <th> </th>
+                <th>Core</th>
+                <th>Adjacent</th>
+                <th>Opposed</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Latin</td>
+                <td><em>humilitas</em>, <em>humilis</em></td>
+                <td><em>abiectio</em>, <em>contemptus sui</em>, <em>obedientia</em>, <em>mansuetudo</em>,
+                    <em>minoritas</em>, <em>exinanitio</em></td>
+                <td><em>superbia</em>, <em>elatio</em>, <em>iactantia</em>, <em>vanagloria</em></td>
+            </tr>
+            <tr>
+                <td>Middle High German</td>
+                <td><em>diemuot/demut</em></td>
+                <td><em>niderigkait</em>, <em>smachaereit</em>, <em>gedult</em>, <em>armuot</em></td>
+                <td><em>hochvart</em>, <em>stolz</em>, <em>hofart</em></td>
+            </tr>
+            <tr>
+                <td>Arabic</td>
+                <td><em>tawāḍuʿ</em>, <em>khuḍūʿ</em></td>
+                <td><em>khushūʿ</em>, <em>waraʿ</em>, <em>faqr</em>, <em>dhull</em>, <em>inkisār</em></td>
+                <td><em>kibr</em>, <em>ʿujb</em>, <em>fakhr</em>, <em>ʿizz</em></td>
+            </tr>
+        </tbody>
+    </table>
+    <p>The asymmetry of this table is itself a hypothesis to test: German mysticism's <em>niderigkait</em> (lowness)
+        picks out a different experiential slice than <em>humilitas</em>, and Arabic splits bodily/interior reverence
+        (<em>khushūʿ</em>, <em>khuḍūʿ</em>) from social condescension (<em>tawāḍuʿ</em>). Do not assume a single concept
+        across languages — the &quot;untranslatability&quot; is data.</p>
+    <p><strong>Stage 2 — Normalisation and lemmatisation.</strong> This is the hardest technical step and where medieval
+        corpora usually fail. Latin: lemmatisers exist and work reasonably (UDPipe/UD Latin treebanks, plus the Du Cange
+        glossary and the Brepols Library of Latin Texts / CETEDOC corpora for comparison). Middle High German: no
+        reliable off-the-shelf lemmatiser; the Mittelhochdeutsche Begriffsdatenbank (Salzburg) and the Deutsches
+        Textarchiv (CLARIN.D) give you reference word lists and existing annotations you can adapt. Arabic: CAMeL Tools,
+        FARASA, or AraMorph for morphological analysis, and the Open Arabic Lexicon (OPENLex) for period vocabulary.
+        Budget real time here, and consider a manually lemmatised gold subset (say 40–50 passages per language) to
+        measure your error rate.</p>
+    <p><strong>Stage 3 — Distant reading.</strong> Four complementary passes:</p>
+    <ul>
+        <li><strong>Concordance and collocation</strong> (AntConc, NoSketch, or a Python pipeline): which verbs govern
+            humility terms, which adjectives modify them, which theological agents appear. Definitional syntax
+            (&quot;humility is…&quot;, &quot;<em>demuot ist</em>…&quot;, &quot;<em>al-tawāḍuʿ</em>…&quot;) is your
+            highest-yield search.</li>
+        <li><strong>Topic modelling</strong> (LDA/BERTopic) to see which contexts humility travels with — monastic
+            discipline, prayer, gender, the body, the poor.</li>
+        <li><strong>Diachronic distributional semantics</strong>: word embeddings trained on sub-corpora (by century, by
+            language, by gender) so you can measure how the neighbourhood of <em>humilitas</em> or <em>tawāḍuʿ</em>
+            shifts. Methodologically, start with Kim et al. (2012) and then the critical literature — Tuomainen &amp;
+            Van Strien's &quot;Conceptualizing Diachronic Distributional Semantic Analysis for History Research&quot;
+            (<em>Cultural Analytics</em>, 2021) and Tahmasebi et al.'s survey of historical word-change analysis —
+            because embeddings on 400 short passages will be noisy and you must not over-read them.</li>
+        <li><strong>Concept co-occurrence networks</strong>, to visualise the field structure per language and period.
+        </li>
+    </ul>
+    <p><strong>Stage 4 — Close reading and typology.</strong> <mark class="highlight">Distant reading ranks passages; only reading classifies
+        them</mark>. Build a small typology of <em>ways of defining</em> — e.g. humility as (a) right estimation of self, (b)
+        absence of self-will / obedience, (c) bodily and liturgical posture, (d) relational to God, (e) social
+        condescension toward inferiors, (f) epistemic limitation, (g) contempt of self — and code each passage. This
+        codebook is your real contribution; the numbers merely show you where to look.</p>
+    <p><strong>Stage 5 — Comparison.</strong> Cross-tabulate the typology against language × century × gender ×
+        text-type. Report where the distribution is thin rather than asserting absence.</p>
+    <h4 id="14-literature-on-the-digital-turn-in-conceptual-history">1.4 Literature on the digital turn in conceptual
+        history</h4>
+    <p>The key programmatic text is Stefan Haas, &quot;Conceptual History and the Digital Turn&quot;; see also the
+        discussions of <em>Begriffsgeschichte</em> and digital humanities in German handbook literature, and the
+        <strong>Digital Conceptual History Network</strong> (Leipzig/Dresden, Sebastian Zöbel and colleagues), which
+        explicitly works on historical semantic change with computational tools. For ready-made infrastructure:
+        <strong>ConceptLab</strong> (Wagner, Obregón, Kern &amp; Pachur, <em>Behavior Research Methods</em>, 2021) for
+        corpus concept comparison, the <strong>History of Concepts Toolbox</strong> (Stanford), the Münster
+        <strong>Semantographies</strong> project, and the CLARIN / DARIAH infrastructures. Franco Moretti's <em>Distant
+            Reading</em> and Jockers's <em>Macroanalysis</em> remain the framing texts, with the caveat that both assume
+        monolingual modern novels.</p>
+    <h4 id="15-substantive-scholarship-on-humility-to-position-yourself-against">1.5 Substantive scholarship on humility
+        to position yourself against</h4>
+    <ul>
+        <li><strong>Latin/Christian</strong>: Benedict's Rule ch. 7 (the twelve steps, a <em>ladder</em> — humility as
+            graded practice); Bernard of Clairvaux, <em>De gradibus humilitatis et superbiae</em> (humility and pride as
+            a single coupled system); Aquinas, <em>ST</em> II–II qq. 161–162 (humility annexed to temperance — a crucial
+            reclassification); Augustine on <em>superbia</em> as the root sin. Jean Leclercq's <em>L'Amour des lettres
+                et le désir de Dieu</em> for monastic mentalités; Ruedi Imbach's recent work on humility and modernity
+            for the long arc.</li>
+        <li><strong>German</strong>: Kurt Ruh's <em>Geschichte der mittelalterlichen deutschen Mystik</em> and the
+            Eckhart/Suso/Tauler literature on <em>niderigkait</em>, where humility detaches from merit-based ethics
+            toward detachment and &quot;lowness&quot; as ontological.</li>
+        <li><strong>Arabic</strong>: al-Muhasibi's <em>al-Riʿāya</em>, al-Sulamī's <em>Ḥilyat al-awliyāʾ</em>, and
+            al-Ghazālī's <em>Iḥyāʾ ʿulūm al-dīn</em> (the books on <em>tawāḍuʿ</em> and on <em>kibr</em>/<em>ʿujb</em>)
+            are the theoretical anchors; Annemarie Schimmel and William Chittick for interpretation. Methodologically,
+            Toshihiko Izutsu's ethico-semantic studies of Qur'anic vocabulary are the closest analogue to what you want
+            to do — semantic field analysis of an ethical term in Arabic, done philologically.</li>
+        <li><strong>Gender</strong>: humility is heavily gendered in medieval discourse — coded feminine, and
+            simultaneously the virtue through which women authors claim authority. Barbara Newman's <em>From Virile
+                Woman to WomanChrist</em>, Dyan Elliott on bodies and demonology, and Rkia Elaroui Cornell's <em>Rabiʿa
+                from Narrative to Myth</em> (for the Arabic case, and for how humility narratives get constructed
+            retrospectively) are the reference points. Note that your gender variable will partly measure <em>genre and
+                attribution practice</em> rather than authorial psychology — say so explicitly.</li>
+    </ul>
+    <h4 id="16-pitfalls-to-write-into-your-methodology-section">1.6 Pitfalls to write into your methodology section</h4>
+    <p>Lemmatisation error is your largest source of noise, not your sample size. The quotation layer means apparent
+        agreement between authors may be one text; conversely, apparent cross-language agreement may be a shared Latin
+        source translated into both. Anonymous and male-attributed-by-default texts bias the gender axis. And a corpus
+        of 400 pre-selected passages is not a sample of a tradition — it is a sample of your selection criteria, which
+        you should state.</p>
+    <hr />
+    <h2 id="2-the-pivot-method">2. The pivot method</h2>
+    <blockquote>
+        <p><strong>Prompt.</strong> What about introducing this heuristic method: provide a human made, as much as
+            possible literal translation into English of all the texts, then explore with classical textometry approach
+            (lemmatization, POS, cooccurrencies, language specificities), use this for building terms taxonomy, then
+            explore term spécificités in relation to gender, time, language — finally go back to the original language
+            and wording. Any literature applying this approach? Evaluation and criticism</p>
+    </blockquote>
+    <h3 id="answer-1">Answer</h3>
+    <h4 id="21-the-method-has-a-name-and-a-known-failure-mode">2.1 The method has a name, and a known failure mode</h4>
+    <p>What you describe is <strong>translation-mediated (pivot-language) comparative textometry</strong>. It is
+        legitimate, widely used, and cheaper than the alternatives — but it has one structural defect you must design
+        around: <strong>the pivot does not merely transmit the concepts, it pre-selects them.</strong> Every time you
+        render <em>humilitas</em>, <em>diemuot</em> and <em>tawāḍuʿ</em> with &quot;humility&quot;, you have already
+        asserted a correspondence that is your actual research question. The instrument is biased toward finding
+        convergence, which is exactly the null result you would least like to mistake for a discovery.</p>
+    <p>The precise theoretical framing is the <strong>tertium comparationis</strong> problem. Haspelmath's distinction
+        is the one to cite and to obey: <strong>descriptive categories</strong> are language-internal
+        (<em>humilitas</em> as Latin usage defines it, <em>khushūʿ</em> as Qur'anic and Sufi usage defines it), while
+        <strong>comparative concepts</strong> are the analyst's instrument, stipulated for the purpose of comparison.
+        Your English pivot must be declared, in your methodology section, a comparative concept. The moment it is
+        treated as a shared meaning, the study is circular. Levinson and Wilkins's <em>Grammars of Space</em> (2006) is
+        the model for building a comparative concept deliberately — with elicitation &quot;prompts&quot; designed not to
+        smuggle in English categories — and Evans &amp; Levinson's &quot;The Myth of Language Universals&quot; (2009) is
+        the strongest statement of why English lexical semantics is a poor default.</p>
+    <h4 id="22-where-the-approach-has-been-applied">2.2 Where the approach has been applied</h4>
+    <ul>
+        <li><strong>Ethnosemantics and componential analysis</strong> is the direct ancestor: Frake (1964) on
+            translating ethnographic material and decomposing translated terms into semantic features; the French school
+            of Soulignac and Gardin. Its collapse is your warning label — Hymes's and Tyler's critique was that
+            componential analysis imposed the analyst's taxonomy on the data and produced tidy structures no speaker
+            recognised.</li>
+        <li><strong>Frame semantics and its multilingual transfer</strong>: Fillmore's frames, FrameNet, and the
+            <em>multilingual FrameNet</em> literature (Boas and colleagues) is the best-documented attempt to carry
+            English-anchored semantic frames into other languages, and the best-documented record of where it fails.
+            Same for WordNet/EuroWordNet/BabelNet: synsets are English lexical groupings, and their hierarchies are not
+            language-neutral.</li>
+        <li><strong>Comparable corpora and cross-language retrieval</strong>: Grefenstette's work on building a
+            thesaurus from English–French comparable corpora, Rapp (1995), Fung &amp; Yee (1998), and Sharoff's
+            programme of comparable corpora as an alternative to translation. All of these treat translation as a noisy
+            alignment device, not as a semantic layer — the right stance.</li>
+        <li><strong>Multilingual DH and machine translation</strong>: the empirical studies of &quot;MT noise&quot;
+            (Oakes, Foster, Sharoff and colleagues, <em>Machine Translation</em>, 2015) found that translation-induced
+            noise degrades retrieval <em>more</em> than OCR noise does. That finding <em>[answer continued in §3]</em>
+        </li>
+    </ul>
+    <hr />
+    <h2 id="3-the-pivot-as-heuristic">3. The pivot as heuristic</h2>
+    <blockquote>
+        <p><strong>Prompt.</strong> But can we not imagine a pure heuristic use to identify cooccurrences and common
+            'ideas', bodily positions, practices, attitudes, we would anyway describe in English and compare, not the
+            precise wording?</p>
+    </blockquote>
+    <h3 id="answer-2">Answer</h3>
+    <h4 id="31-yes--and-that-reframing-changes-the-objections-character-entirely">3.1 Yes — and that reframing changes
+        the objection's character entirely</h4>
+    <p>Your move is sound, and it's worth being precise about <em>why</em> it works, because it tells you how to build
+        it.</p>
+    <p>If the English is the <strong>unit of measurement</strong>, translation bias contaminates your results: you will
+        find convergence because you stipulated it. If the English is a <strong>retrieval and attention device</strong>,
+        the bias no longer produces false conclusions — it produces <em>missed passages</em>. Precision is no longer at
+        stake; only <strong>recall</strong>. That is a much cheaper problem, and it's an engineering problem rather than
+        a validity problem.</p>
+    <p>The deeper justification is your own phrase: &quot;not the precise wording.&quot; You are proposing to <mark class="highlight">compare at
+        the level of the <strong>referent</strong></mark> — a body on the ground, a gaze lowered, a refusal of an offered seat,
+        a hand doing a servant's work — rather than at the level of the <strong>sign</strong>. That is the
+        <strong>onomasiological</strong> direction of analysis (from a fixed notion to the forms that express it) rather
+        than the semasiological one (from a fixed form to its meanings), and it is the only direction in which
+        trilingual comparison is possible at all. Trier's field theory is usually read semasiologically, but his
+        <em>Wertbegriff</em> work is really this: fix the experiential content, then watch which lexical items divide it
+        up differently.</p>
+    <h4 id="32-literature-that-does-exactly-this">3.2 Literature that does exactly this</h4>
+    <ul>
+        <li><strong>Co-expression analysis and semantic maps.</strong> This is the closest existing method to what you
+            describe. Haspelmath's semantic-map work (2003) and François's co-expression method (2008) proceed by
+            collecting, for a set of notions, the forms that express them in each language, then using the <em>pattern
+                of co-expression</em> — which notions a single form covers here but not there — to build a
+            language-neutral conceptual network. The translations are indispensable and are never trusted as meanings.
+            Applied to your corpus: the fact that one Arabic form covers both bodily stillness in prayer and social
+            condescension, where German splits them, becomes a structural finding rather than a translation nuisance.
+        </li>
+        <li><strong>Haspelmath's comparative vs. descriptive concepts</strong> (2010) remains the citation to keep, but
+            now it supports you: the English annotation is your comparative concept, declared as such.</li>
+        <li><strong>The Nijmegen/Max Planck referent-first method</strong>: the <em>Field Manual</em> (Enfield &amp;
+            Levinson, 2006) and Levinson &amp; Wilkins's <em>Grammars of Space</em> (2006). The lesson to steal is the
+            discipline of specifying the situation so finely that no analyst's native-language category can do the work
+            for you.</li>
+        <li><strong>Semantic/conceptual tagsets</strong>: Rayson, Leech &amp; Hodges, &quot;The Development of a
+            Semantic/Conceptual Tagset for English Text&quot; (1997) — the title is precisely your problem, and the
+            paper is a candid account of what a conceptual tagset costs. Fillmore &amp; Bakker, &quot;Frame
+            Identification as Annotation&quot; (2010), on annotating frames across languages. And Ide &amp; Véronis
+            (1998) on the &quot;polysemy cut-up&quot;: any sense inventory is an arbitrary slicing of a continuum —
+            which is why the inventory must be yours, small, and documented.</li>
+        <li><strong>Annotation as interpretation, disagreement as signal</strong>: Sparck Jones (2003) on what
+            annotation presupposes; Di Eugenio &amp; Joseph (2004) on what inter-annotator disagreement actually
+            measures; Aroyo &amp; Welty (2015) on the myths of annotation ground truth; and the &quot;annotation
+            adiabatic fallacy&quot; line of work (Baddeley, Marchiori, Lascarides and colleagues), whose point is that
+            you cannot observe a category by annotating it without altering it — so annotator uncertainty should be
+            recorded, not averaged away.</li>
+        <li><strong>On the body-and-practice layer you want to code</strong>, the substantive framework is already
+            there: Mauss's &quot;Techniques of the Body&quot; (1935) for posture as culturally variable technique rather
+            than natural expression; Elias on the shifting thresholds of shame and repugnance, which matters for your
+            period axis; Bourdieu's <em>habitus</em> for the sedimentation of disposition in gesture. For the
+            Latin/German medieval material specifically, Althoff's work on ritualized submission and self-abasement
+            (<em>deditio</em>) is the most directly relevant: he analyses prostration, weeping, disarmed approach, and
+            self-humiliation as a codified repertoire — which is your &quot;bodily positions&quot; dimension, already
+            theorized, in Latin sources. Buc's <em>The Dangers of Ritual</em> (2001) and Koziol's subsequent critique
+            are the necessary warning: you infer ritual from texts written by people with an agenda about it.
+            Rosenwein's emotional communities for the attitudes, and Bynum on gender, flesh and practice for the women's
+            material. For Arabic, the Sufi <em>ādāb</em> literature (al-Sulamī's <em>Ādāb al-ṣūfiyya</em>) and the
+            discipline sections of the <em>Iḥyāʾ</em> are explicitly manuals of bodily conduct — so your
+            &quot;practice&quot; dimension is not an imposition there either.</li>
+    </ul>
+    <h4 id="33-what-the-reframing-requires-you-to-change">3.3 What the reframing requires you to change</h4>
+    <p><strong>1. The English is an annotation layer, not a text.</strong> Stop thinking &quot;translation of all
+        texts&quot; and start thinking <mark class="highlight">&quot;one controlled annotation per passage, in English, keyed to the
+        source.&quot;</mark> That single change buys you versioning, multiple annotators, and disagreement statistics.</p>
+    <p><strong>2. Do not normalize the glosses.</strong> Keep every English rendering as produced. The <mark class="highlight">distribution of
+        renderings per source lemma is a measurement of semantic breadth</mark> and of where the fields fail to overlap. A term
+        that translators render five different ways is a term with a wide or contested field; a term rendered
+        consistently is a term whose English counterpart genuinely fits. That is a result, and it disappears the moment
+        you standardize.</p>
+    <p><strong>3. Measure recall from the source, not from the pivot.</strong> Build the source-language term lists
+        first (the semantic fields), extract all occurrences, then check what proportion your English annotation
+        captured. Inconsistent renderings are your leaks. Report a recall figure; it converts the main objection into a
+        quantified limitation.</p>
+    <p><strong>4. Ban the value term from your codes.</strong> The rule that makes the whole thing safe: <mark class="highlight">no code may
+        contain the concept under study</mark>. Never code &quot;humility&quot;. <mark class="highlight">Code the components [FB: classification of 'claims' (ideas comprising multiple temrs)?]</mark>.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Dimension</th>
+                <th>Values (illustrative)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Locus</td>
+                <td>body / will / intellect / affect / speech / status / property / relation to God / relation to others
+                    / self-relation</td>
+            </tr>
+            <tr>
+                <td>Bodily component</td>
+                <td>prostration, kneeling, head lowered, gaze lowered, silence, sitting low, descending, manual service,
+                    refusing an honor, absence of gesture</td>
+            </tr>
+            <tr>
+                <td>Voice</td>
+                <td>self-induced / induced by God / imposed by others</td>
+            </tr>
+            <tr>
+                <td>Direction</td>
+                <td>vertical-upward / vertical-downward (toward inferiors) / horizontal / reflexive</td>
+            </tr>
+            <tr>
+                <td>Epistemic component</td>
+                <td>knowledge of one's faults / knowledge of one's nothingness / ignorance of one's own virtue / refusal
+                    to judge</td>
+            </tr>
+            <tr>
+                <td>Structure</td>
+                <td>privative (absence of pride) / positive (love of lowness) / relational (deference)</td>
+            </tr>
+            <tr>
+                <td>Visibility</td>
+                <td>hidden / performed / performed-against-will</td>
+            </tr>
+            <tr>
+                <td>Valence</td>
+                <td>praiseworthy / penal / medicinal / deceptive (false humility) / impossible without grace</td>
+            </tr>
+            <tr>
+                <td>Model</td>
+                <td>Christological / monastic-rule / mystical / courtly / prophetic-Sufi / exemplum</td>
+            </tr>
+            <tr>
+                <td>Unclassifiable</td>
+                <td>yes — and read all of these</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>Your comparison is then a cross-tabulation of language × period × gender × code, not of English term frequencies.
+        That also sidesteps the quotation problem: a quoted passage still <em>reports</em> the same bodily repertoire,
+        so the non-independence issue becomes far less damaging, though you should still model author and text as random
+        effects.</p>
+    <h4 id="34-residual-risks-honestly-stated">3.4 Residual risks, honestly stated</h4>
+    <p>Three remain. <strong>Granularity is not innocent</strong>: &quot;bodily lowness&quot; is safe,
+        &quot;humility&quot; is not, and the boundary between describing a posture and naming a virtue is where bias
+        re-enters — which is why the frame above is decompositional. <strong>Confirmation bias in the heuristic
+            stage</strong>: a discovery device driven by your own English description finds what you can already
+        conceive, so run one coding pass blind, from the source-language concordances, with no hypotheses in hand, and
+        treat the unclassifiable rate as your measure of how much the frame is imposing. <strong>The language/genre
+            confound survives unchanged</strong>: language is not an independent variable in a medieval corpus, and no
+        annotation scheme fixes that.</p>
+    <p>So: adopt it, but as a controlled conceptual annotation with a source-language recall check and un-normalized
+        glosses, not as a translation you later forget.</p>
+    <hr />
+    <h2 id="4-the-controlled-record-and-machine-assistance">4. The controlled record, and machine assistance</h2>
+    <blockquote>
+        <p><strong>Prompt.</strong> Develop this &quot;one controlled annotation per passage&quot; what is intended.
+            What about producing those directly from texts using a LLM?</p>
+    </blockquote>
+    <h3 id="answer-3">Answer</h3>
+    <h4 id="41-part-1--what-the-record-actually-is">4.1 Part 1 — What the record actually is</h4>
+    <p>&quot;One controlled annotation per passage&quot; means that <mark class="highlight">for each passage you produce a <strong>structured
+            record that is a third object</strong>, neither the source text nor the English rendering, and that every
+        claim in it points back to words in the source</mark>. The passage is not the unit of coding — a passage of eight
+        sentences may make four distinct claims about the concept, so you segment into <strong>annotation units</strong>
+        (one predication each), which is the classic unit-of-analysis problem in content analysis that Krippendorff
+        insists on resolving before anything else.</p>
+    <p>A record looks like this:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Content</th>
+                <th>Why it matters</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>passage_id</code></td>
+                <td>stable, never reused</td>
+                <td>lets the scheme be revised without losing history</td>
+            </tr>
+            <tr>
+                <td>metadata</td>
+                <td>language, century, author, gender + <em>attribution status</em>, genre, text-type layer (theory /
+                    rule / exemplum / vision / letter), quoted-source if any</td>
+                <td>your comparison axes, plus the quotation layer</td>
+            </tr>
+            <tr>
+                <td><code>source_spans</code></td>
+                <td>token-level IDs from the TEI text (DTA/CLARIN word-ID convention)</td>
+                <td>the anchor; offsets survive re-encoding</td>
+            </tr>
+            <tr>
+                <td><code>source_lemmata</code></td>
+                <td>humility-field lemmata actually present, found by <strong>source-language</strong> search</td>
+                <td>this is what makes the record falsifiable</td>
+            </tr>
+            <tr>
+                <td><code>au_id</code> + <code>au_spans</code></td>
+                <td>which words license this unit</td>
+                <td>no code without evidence</td>
+            </tr>
+            <tr>
+                <td>feature values</td>
+                <td>locus, bodily component, voice, direction, epistemic component, structure, visibility, valence,
+                    model</td>
+                <td>the comparison happens here</td>
+            </tr>
+            <tr>
+                <td><code>evidence_span</code></td>
+                <td>verbatim substring + offsets</td>
+                <td>machine-checkable</td>
+            </tr>
+            <tr>
+                <td><code>gloss</code></td>
+                <td>the annotator's English paraphrase, <strong>un-normalized</strong></td>
+                <td>data, not apparatus</td>
+            </tr>
+            <tr>
+                <td><code>uncertainty</code></td>
+                <td>confident / ambiguous / unclassifiable, with a note</td>
+                <td>your ambiguity signal</td>
+            </tr>
+            <tr>
+                <td><code>annotator</code>, <code>date</code>, <code>scheme_version</code></td>
+                <td>provenance</td>
+                <td>see below</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>Four design decisions carry most of the weight.</p>
+    <p><strong>Every dimension needs a definition, a closed value list, a decision rule, and two or three anchored
+            examples.</strong> A dimension without anchored exemplars is not a dimension; it is a suggestion, and two
+        coders will produce two different variables that share a name.</p>
+    <p><strong>Distinguish &quot;not mentioned&quot; from &quot;not applicable&quot; from
+            &quot;uncertain&quot;.</strong> Collapsing these three into a blank is the commonest way annotation tables
+        silently corrupt a diachronic comparison, because &quot;not mentioned&quot; is itself a finding.</p>
+    <p><strong>Version the scheme and record which version produced each code.</strong> Your scheme <em>will</em> change
+        in month three. If you do not re-code or flag, part of your &quot;13th vs 15th century difference&quot; is an
+        artifact of your own learning.</p>
+    <p><strong>Double-code a stratified subsample</strong> (15–20%, stratified by language, century and genre), compute
+        agreement per feature — Krippendorff's α rather than Cohen's κ where categories are skewed or coders differ,
+        since κ is badly distorted by unequal marginals, as Krippendorff's 2011 note on α shows — then adjudicate and
+        revise. Treat first-pass agreement as a <strong>specification test of the scheme</strong>, not as a measurement
+        of the corpus. Expect high agreement on bodily component and low on valence; the low ones are the ones you must
+        either sharpen or drop.</p>
+    <p>The output is a table plus a gold set, and both should be deposited with a DOI (CLARIN, DARIAH, Zenodo). The
+        annotation is a research product, not a working file.</p>
+    <h4 id="42-part-2--generating-them-with-an-llm">4.2 Part 2 — Generating them with an LLM</h4>
+    <p>Yes, do it — but the reason to be careful is not the usual &quot;LLMs hallucinate&quot; objection. It is a
+        statistical one.</p>
+    <p><strong>Model error is coherent where human error is scattered.</strong> Ten human annotators drift in ten
+        different directions, so their disagreement is visible in your α and points you at the ambiguous material. A
+        single model makes the <em>same</em> misreading 400 times. That inflates apparent consistency, keeps agreement
+        statistics clean, and hides the bias exactly where you would otherwise detect it. A model that systematically
+        codes <em>obedientia</em> and <em>patientia</em> as humility-relevant because the topic primes it will produce a
+        beautifully consistent corpus that is wrong in one direction. Stochastic-parrots-style critiques make this point
+        in general; here it has a concrete consequence, because consistency is your only defence against the suspicion
+        that the scheme is imposing structure.</p>
+    <p><strong>Three specific failure modes for your corpus.</strong></p>
+    <p><em>Evidence spans.</em> Asked to name the words licensing a code, a model returns plausible spans that are not
+        there. This is fatal for a source-keyed design. The guardrail is implementable: require verbatim substrings,
+        then <strong>verify programmatically</strong> <em>[answer continued in §5]</em></p>
+    <hr />
+    <h2 id="5-worked-records">5. Worked records</h2>
+    <h3 id="51-prompt--p017-middle-high-german">5.1 Prompt — P017 (Middle High German)</h3>
+    <blockquote>
+        <p><strong>Prompt.</strong> Give a structured record example from this text</p>
+        <p><em>Si sind von unsrem herren fúrkomen in dem segnen der süssikeit, wele götlichen himelsche süssikeit hie in
+                diser zit ervolget wirt mit reinikeit des inneren und des usseren mönschen, mit senftmüttiger
+                demüttikeit des hertzen und der usseren wandlung, mit andechtiger volbringung des götlichen dienstes,
+                mit flissiger nochfolgung oder behaltung des ordens und der gehorsam in lutterer ungestifteter götlicher
+                minn.</em></p>
+    </blockquote>
+    <p><a href="P017.html" target="_blank"><strong>Record <code>P017</code></strong></a> <em>(structured record omitted
+            from this export — see the full record in the working files)</em></p>
+    <h4 id="what-the-record-does-that-a-summary-would-not">What the record does that a summary would not</h4>
+    <p><strong>The absence fields carry the argument.</strong> No lowness lexeme, no self-contempt, no antonym. Against
+        the Bernardine and Augustinian tradition, where humility is <em>vera cognitio</em> — knowledge of one's own
+        nothingness — the <code>epistemic_component</code> field reads <code>not_mentioned</code> in all seven units.
+        That is a negative result you can only report if the dimension exists in the scheme and you record blanks as
+        data.</p>
+    <p><strong>The bipartition is the author's, not yours.</strong> Units a3 and a4 both split on the same inner/outer
+        axis (<code>des inneren und des usseren mönschen</code> / <code>des hertzen und der usseren wandlung</code>).
+        The scheme surfaces a structural commitment of the text rather than imposing one.</p>
+    <p><strong>Humility appears once, in an instrumental phrase, qualified by gentleness.</strong> The passage is about
+        sweetness; humility is one of four means. A topic model or a term-frequency count would rank this passage as
+        humility-saturated. The annotation records its actual function: <code>positive_constitutive</code>, a condition
+        of union, with no penal or medicinal valence anywhere.</p>
+    <p><strong>Two things are deliberately left unresolved.</strong> The <code>ervolget</code> ambiguity (attain vs.
+        express) and the <code>ungestiftet</code> tension with the means-frame are logged rather than decided, because
+        resolving them silently would produce a tidy record of a passage that is not tidy.</p>
+    <p><strong>On the LLM question, this passage is a good test case.</strong> A model asked to code it will very likely
+        supply an epistemic or self-abasement component that the text does not contain, will render
+        <code>wandlung</code> as &quot;transformation&quot; or &quot;behaviour&quot; without flagging the double
+        resonance, will flatten <code>ungestiftet</code> to &quot;pure&quot;, and will guess an author — Suso or Eckhart
+        — from the vocabulary, which is exactly the attribution error the metadata schema is built to prevent. It would
+        also probably fail to notice that the word for lowness is missing, because absences are not in the text.</p>
+    <h3 id="52-prompt--p018-latin">5.2 Prompt — P018 (Latin)</h3>
+    <blockquote>
+        <p><strong>Prompt.</strong> And same of this</p>
+        <p><em>Si, cum hominibus potentibus volumus aliqua suggerere, son praesuminus nisi cum humilitate et reverentia,
+                quanto magis domino deo universorum cum omni humilitate et puritatis devotione supplicandum est. Et non
+                in multiloquio, sed in puritate cordis et conpunctione lacrimarum nos exaudiri sciamus. Et ideo brevis
+                debet esse et pura oratio, nisi forte ex affectu inspirationis divinae gratiae protendatur. In conventu
+                tamen omnino brevietur oratio, et facto signo a priore pariter surgant</em></p>
+    </blockquote>
+    <p><a href="P018.html" target="_blank"><strong>Record <code>P018</code></strong></a> <em>(structured record omitted
+            from this export)</em></p>
+    <h4 id="scheme-feedback-what-this-passage-forced">Scheme feedback (what this passage forced)</h4>
+    <p>The frame held, but not unchanged. Recorded as a change log, because an unlogged scheme revision is how a project
+        quietly changes its object:</p>
+    <ul>
+        <li><strong>Three new dimensions required</strong>: <code>argument_form</code> (a fortiori / exemplum /
+            praeceptum / definitio), <code>speech_act</code> (praeceptum / exhortatio / assertio),
+            <code>grace_override</code> (present / absent, and <em>where</em> in the logical structure). P017 needed
+            none of these — it is declarative and doxological; P018 is an argument and a regulation. Without
+            <code>argument_form</code> you cannot record that Benedict <em>derives</em> divine humility from human
+            deference, which is the single most important thing this passage says.</li>
+        <li><strong>Two value lists extended</strong>: <code>epistemic_component</code> gained
+            <code>confidence_of_being_heard</code>; <code>bodily_component</code> gained tears, vocal restraint,
+            synchronized rising, sign gesture; <code>visibility</code> gained <code>synchronized_collective</code>;
+            <code>model</code> gained <code>petitionary_administrative_etiquette</code>.</li>
+        <li><strong>One dimension behaved as designed</strong>: <code>structure</code> came out <code>privative</code>
+            or <code>privative_and_positive</code> in all five units, against <code>positive_and_relational</code> in
+            all seven P017 units — and <code>antonym_field_present</code> flipped from <code>not_mentioned</code> to
+            <code>praesumere, multiloquium</code>. The two passages disagree on the same axis, which is what an axis is
+            for.</li>
+    </ul>
+    <h4 id="what-the-comparison-already-shows">What the comparison already shows</h4>
+    <p><strong>The word and the concept come apart.</strong> P017 uses the humility lexeme once and has seven units;
+        P018 uses it twice and has five, of which only two contain it. Mentions and units are only loosely related, so
+        any term-frequency or keyword-keyed method — including one run on the English pivot — would rank these two
+        passages as comparable in humility content when their structures are opposite.</p>
+    <p><strong>Two definitions, in the strict sense.</strong> P018 defines humility negatively, as the restraint of
+        presumption, and transfers it to God by analogy from secular petitionary conduct; the concept's content is
+        therefore social deportment all the way down. P017 never mentions presumption, never defines humility
+        negatively, and places it as one of four means within a gift-structure. One is a <em>manner of approach</em>,
+        the other a <em>disposition of spirit</em> — and neither contains the self-evaluative component that the English
+        word &quot;humility&quot; supplies as its default meaning. That is the central finding so far, and it is
+        available precisely because the codes forbid the word.</p>
+    <p><strong>The assurance point cuts against the modern intuition.</strong> Benedict pairs total humility with
+        <code>nos exaudiri sciamus</code> — let us <em>know</em> we are heard. Humility here produces epistemic
+        confidence, not self-doubt. If you coded with a modern virtue-theory frame, you would likely score this as low
+        on the very dimension the modern concept centres on.</p>
+    <p><strong>The grace-override is a genuine cross-language convergence</strong> — and its differing placement
+        (exception clause inside legislation vs. groundlessness beneath an entire means-chain) is a hypothesis worth
+        testing on the full corpus: does the logical position of the grace clause track genre, or language?</p>
+    <p>Two caveats to carry forward. The <code>son/non</code> reading in your excerpt must be collated against a
+        critical edition before this record is trusted, since the negation carries unit b1. And the intertextual echoes
+        are marked as echoes: Cassian and Sirach are the standard source-critical candidates for RB 20, but I have not
+        verified them against the apparatus here, and the de Vogüé–Neufville edition is where that gets settled.</p>
+    <h3 id="53-prompt--p019-latin">5.3 Prompt — P019 (Latin)</h3>
+    <blockquote>
+        <p><strong>Prompt.</strong> And same also for this</p>
+        <p><em>humilitas sic descripta imitanda, primo quia sue angustie est paciens tolleratrix; ut matrona a viro suo
+                iniuriose tractata pacienter sustinet ne virum dignum vituperio reddat, and if perchance, from the
+                injury of a beating, a mark appears outwardly for the reproach, she carefully conceals it, asserting
+                that she incurred such harm from elsewhere. Ecclesiastici 2 dicitur: &quot;Aurum et argentum in igne
+                probantur,&quot; etc. Unde Augustinus: &quot;Beati, inquit, humiles qui, etsi quando fieri solet ut
+                iniustas audiant increpaciones, amplius se Christo humilient et minus se audire quam meruerunt
+                proclamant.&quot;</em></p>
+    </blockquote>
+    <p><a href="P019.html" target="_blank"><strong>Record <code>P019</code></strong></a href="P017.html"
+            target="_blank"> <em>(structured record omitted from this export)</em></p>
+    <h4 id="what-this-passage-adds">What this passage adds</h4>
+    <p><strong>The gender variable was under-specified in the original design.</strong> Your plan had gender as a
+        property of the <em>author</em>. In P019 author gender is unknown and unusable, while gender is doing the
+        central work <em>inside</em> the text: humility is defined through a woman's beaten body, and the exemplum only
+        persuades because she cannot answer back. So gender needs two fields — author gender, and the gender of the
+        agent and patient in each exemplum. On a corpus of 400 passages this will likely be the single most productive
+        distinction available, because it separates &quot;who writes about humility&quot; from &quot;who is made to
+        embody it&quot;.</p>
+    <p><strong>Three concepts, one lemma.</strong> P018 and P019 both use <em>humilitas</em>, and both are Latin, near
+        enough the same period. P018's humility is the restraint of presumption, a deportment of approach learned from
+        petitionary etiquette. P019's is patient endurance of imposed injury plus management of what is said about it.
+        Opposite <code>structure</code> values, opposite <code>voice</code> values, different opposed terms
+        (<em>praesumptio</em> vs <em>iniuria</em>), different bodies (tears and synchronized rising vs a bruise to be
+        hidden). Same word, same language, same era — and the annotation separates them cleanly while a keyword search
+        cannot even rank them.</p>
+    <p><strong>The epistemic axis now has three positions.</strong> Absent (P017), inverted into assurance of being
+        heard (P018), and present-but-deliberately-skewed toward overclaiming one's desert (P019). Not one of them is
+        the modern &quot;accurate, modest view of oneself&quot;. If the corpus holds, that is your headline result, and
+        it is a result about the <em>English word</em>, not just about the medieval texts.</p>
+    <p><strong>Where an LLM would most plausibly fail here</strong>, and specifically: it would likely code
+        &quot;patience&quot; <em>[answer continued in §6]</em></p>
+    <hr />
+    <h1 id="layer-conditional-annotation--working-notes">Layer-Conditional Annotation — Working Notes</h1>
+    <p><em>Corpus: 400 medieval passages on humility (Latin, Middle High German, Arabic).</em><br /><em>Exported from
+            the working conversation. Code examples omitted.</em></p>
+    <hr />
+    <h2 id="6-layer-conditional-annotation">6. Layer-conditional annotation</h2>
+    <h3 id="prompt">Prompt</h3>
+    <blockquote>
+        <p>There are different text types in the last passage. Differences in annotation?</p>
+    </blockquote>
+    <h3 id="answer-4">Answer</h3>
+    <h4 id="yes--and-the-difference-is-systematic-not-incidental">Yes — and the difference is systematic, not incidental
+    </h4>
+    <p>Coding the three passages produced a pattern I hadn't predicted. Look at where the filled cells actually are.</p>
+    <p><strong>The body appears only in the exemplum.</strong> The definition (c1) has no body beyond an abstract
+        &quot;endurance&quot;. The citations have none. The beaten body, the visible bruise, the concealment of the skin
+        — all of it is in the exemplum. The rule is the other body-rich layer (tears, vocal restraint, rising together
+        on a signal), and there too the body is prescribed rather than described.</p>
+    <p><strong>The epistemic component appears only in the cited authority.</strong> The text's own definition of
+        humility contains no self-relation at all. The exemplum contains none. The skewed self-assessment — proclaiming
+        you were treated lighter than you deserved — arrives entirely inside the Augustinian quotation. So if you asked
+        &quot;does this text define humility as involving self-knowledge?&quot;, the honest answer is: <em>the author's
+            definition doesn't, the illustration doesn't, the authority does</em>.</p>
+    <p><strong>Asymmetry is only ever explicit in the exemplum and in cited beatitude-formulae.</strong> Never in a
+        definition.</p>
+    <p><strong>Strategic calculation appears only in the exemplum</strong> (<em>caute dissimulat</em>). No definition in
+        the sample contains a tactical term.</p>
+    <p>So each layer has a characteristic profile of what it fills in and what it leaves empty:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>dimension</th>
+                <th>definition</th>
+                <th>rule / praeceptum</th>
+                <th>doxology</th>
+                <th>exemplum</th>
+                <th>citation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>bodily_component</code></td>
+                <td>○</td>
+                <td>●</td>
+                <td>○</td>
+                <td>●●</td>
+                <td>○/✕</td>
+            </tr>
+            <tr>
+                <td><code>truth_relation</code></td>
+                <td>○</td>
+                <td>○</td>
+                <td>✕</td>
+                <td>●</td>
+                <td>● (reported)</td>
+            </tr>
+            <tr>
+                <td><code>epistemic_component</code></td>
+                <td>○</td>
+                <td>●</td>
+                <td>○</td>
+                <td>○</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>precondition_asymmetry</code></td>
+                <td>✕</td>
+                <td>○</td>
+                <td>✕</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>exemplum_agent_gender</code></td>
+                <td>✕</td>
+                <td>✕</td>
+                <td>✕</td>
+                <td>●</td>
+                <td>✕</td>
+            </tr>
+            <tr>
+                <td><code>strategic</code></td>
+                <td>○</td>
+                <td>○</td>
+                <td>✕</td>
+                <td>●</td>
+                <td>○</td>
+            </tr>
+            <tr>
+                <td><code>voice</code></td>
+                <td>○</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>● but cited</td>
+            </tr>
+            <tr>
+                <td><code>direction</code></td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>structure</code></td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>valence</code></td>
+                <td>●</td>
+                <td>○</td>
+                <td>○</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>visibility</code></td>
+                <td>✕</td>
+                <td>●</td>
+                <td>○</td>
+                <td>●</td>
+                <td>○</td>
+            </tr>
+            <tr>
+                <td><code>model</code></td>
+                <td>○</td>
+                <td>●</td>
+                <td>○</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>argument_form</code></td>
+                <td>●</td>
+                <td>●</td>
+                <td>○</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>citation_truncation</code></td>
+                <td>✕</td>
+                <td>✕</td>
+                <td>✕</td>
+                <td>✕</td>
+                <td>●</td>
+            </tr>
+            <tr>
+                <td><code>assertion_commitment</code></td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+                <td>●</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>● informative · ○ applicable but absent · ✕ not applicable by layer. This is n=3, so it is a hypothesis about the
+        corpus, not a result in it — but it is a hypothesis with teeth, and it generates four changes.</p>
+    <h4 id="1-not-mentioned-is-layer-relative">1. &quot;Not mentioned&quot; is layer-relative</h4>
+    <p>This is the one that can wreck a study. If definitions systematically lack an epistemic component while citations
+        systematically carry one, then a corpus-wide frequency of <code>epistemic_component: present</code> measures
+        <strong>your layer distribution</strong>, not the concept. And layer distribution varies by genre, genre varies
+        by language, language varies by religious tradition. Every effect you want to find is downstream of this.</p>
+    <p>Two remedies, both cheap. Build the applicability matrix as a real artefact, with three states rather than two,
+        so structural zeros never masquerade as missing data. And never compare a dimension across layers — compare
+        definition to definition, exemplum to exemplum.</p>
+    <h4 id="2-layer-specific-required-fields">2. Layer-specific required fields</h4>
+    <p>A definition, an exemplum and a citation are not the same kind of thing annotated three times.</p>
+    <p>A <strong>definition</strong> needs logical fields the others don't: what is related to what (genus and
+        differentia, or a metaphor, or a paraphrase), positive or negative, intensional or extensional. Note that the
+        definition in the test passage is a reification — humility <em>is a bearer</em> (<em>tolleratrix</em>, a
+        feminine agent noun) — which is a different kind of definition from a genus-differentia one, and the difference
+        is invisible in the current record.</p>
+    <p>An <strong>exemplum</strong> needs narrative fields: agent, patient, asymmetry, outcome, whether the agent is
+        named or generic (<em>matrona</em> is generic, which matters — she is a type, not a case), and whether the
+        exemplum is offered as <em>illustrating</em> or as <em>constituting</em>.</p>
+    <p>A <strong>citation</strong> needs source-critical fields: attribution status, verbatim or adapted, truncation,
+        and function.</p>
+    <h4 id="3-the-exemplum-is-co-definitional-not-decorative">3. The exemplum is co-definitional, not decorative</h4>
+    <p>This is the substantive point. The definition says humility patiently bears its own constriction. It says nothing
+        about concealment, nothing about lying about the origin of an injury, nothing about refusing to answer back. The
+        exemplum adds all three. The illustration is therefore <strong>more specific than the definition it
+            illustrates</strong>, which means the definition is underdetermined and the exemplum is where the concept's
+        extension is actually fixed.</p>
+    <p>Consequence for corpus design: filtering to &quot;theoretical&quot; passages — keeping the summa material,
+        dropping the exempla — would not give you the concept in its pure form. It would give you the part of it that
+        the theory does not carry. And it would delete the concealment component, which is the most analytically
+        interesting thing in the passage. Record the direction of determination for each exemplum: does it narrow the
+        definition, exceed it, or merely repeat it.</p>
+    <h4 id="4-assertion-commitment--the-one-universal-dimension">4. <code>assertion_commitment</code> — the one
+        universal dimension</h4>
+    <p>Every unit has a modality, and the current scheme lacks it. In the test passage: the author asserts the
+        definition outright; commits to the exemplum by analogy (<em>ut</em>); reports the scriptural citation as what a
+        book says; and embeds the patristic citation inside <em>inquit</em>, so that the voice speaking is Augustine's,
+        not his.</p>
+    <p>That distinction is not pedantry, it is the difference between attributing a concept to an author and attributing
+        to him the act of copying. And the trap in a corpus containing quotations from other authors is blunt: <strong>a
+            quotation may be present to be refuted.</strong> Never let <code>layer: patristic_citation</code> imply
+        endorsement. The field should be
+        <code>author_asserted | author_analogized | author_reported | author_quoted | author_quoted_for_refutation</code>,
+        and the last value has to be assigned by reading the surrounding argument, which means it cannot be delegated to
+        a model.</p>
+    <p>Notice what this makes possible. In the three pilot passages, the epistemic component travels with one named
+        authority. Across 400 passages, if the epistemic component keeps attaching to the same carrier, then it is not a
+        feature of the tradition's concept of humility — it is a feature of a transmitted sentence. That is a much
+        better result than a frequency table, and it is only reachable if citation units are annotated as citations.</p>
+    <h4 id="the-confound-to-test-before-anything-else">The confound to test before anything else</h4>
+    <p>Layer composition is a competing explanation for every language and gender effect you will find. If texts by
+        women, or texts about women, are exemplum-heavy and definition-poor, then &quot;women define humility
+        differently&quot; may be &quot;women's textual forms differ&quot; — and the two are not separable without a
+        first pass that models layer.</p>
+    <p>So the analysis order is:</p>
+    <ol>
+        <li>tabulate layer composition by language, period and author gender;</li>
+        <li>if the distributions differ, run the conceptual comparisons <strong>within</strong> layer;</li>
+        <li>report any cross-layer effect as a finding about textual form, not about the concept.</li>
+    </ol>
+    <p>On the model question: layer segmentation is precisely the task where the uniform-bias problem bites hardest. A
+        model will tend to read the passage as one assertion, attribute the Augustinian content to the author, treat the
+        wife as an illustration rather than as content, and miss the truncated Ecclesiasticus clause entirely — and it
+        will make all four errors on every one of your 400 passages, in the same direction. Segment layers by hand on
+        the gold set, and audit model-produced segmentation hardest.</p>
+    <p>The applicability matrix is a real deliverable, by the way — small, citable, and the part of your method other
+        people will want.</p>
+    <hr />
+    <h3 id="prompt-1">Prompt</h3>
+    <blockquote>
+        <p>Yes <em>(produce the matrix as a methods appendix)</em></p>
+    </blockquote>
+    <h3 id="answer-5">Answer</h3>
+    <h1 id="appendix--layer-conditional-annotation-scheme-lcas">Appendix — Layer-Conditional Annotation Scheme (LCAS)
+    </h1>
+    <p><em>Version 0.5 · pilot basis: three records (P017, P018, P019) · status: hypothesis-bearing, not validated</em>
+    </p>
+    <h2 id="a-the-three-state-rule">A. The three-state rule</h2>
+    <p>Every cell of the layer × dimension matrix must be in exactly one state. Empty cells are prohibited.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>State</th>
+                <th>Name</th>
+                <th>Meaning</th>
+                <th>Statistical treatment</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>C</strong></td>
+                <td>Applicable, coded</td>
+                <td>The dimension applies to this layer and a value from the closed list was assigned</td>
+                <td>Numerator and denominator</td>
+            </tr>
+            <tr>
+                <td><strong>A</strong></td>
+                <td>Applicable, absent</td>
+                <td>The dimension applies; the value assigned is <code>not_mentioned</code></td>
+                <td>Denominator only. <strong>A substantive finding</strong></td>
+            </tr>
+            <tr>
+                <td><strong>N/A</strong></td>
+                <td>Not applicable by layer</td>
+                <td>The dimension is undefined for this layer; structural zero</td>
+                <td><strong>Excluded from the denominator entirely</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    <p>Four governing rules.</p>
+    <ol>
+        <li><strong><code>N/A</code> is a scheme-level claim, not a coding decision.</strong> An annotator may never
+            assign <code>N/A</code> ad hoc. If a dimension appears genuinely inapplicable to a particular unit inside an
+            otherwise-applicable layer, code <code>A</code> and add a note. Repeated notes are the signal that the
+            matrix is wrong, and they trigger rule 3.</li>
+        <li><strong><code>A</code> is data; <code>N/A</code> is not.</strong> Collapsing them is the single most
+            damaging error available in this design, because it converts a claim about the tradition (&quot;definitions
+            here do not mention self-knowledge&quot;) into an artefact of the instrument.</li>
+        <li><strong>Escalation rule.</strong> Any cell where the matrix predicts <code>A</code> but three or more units
+            return <code>C</code> — or the reverse — goes to scheme review before further coding. That pattern means the
+            layer boundary is wrong, not the annotator.</li>
+        <li><strong>Dual reporting.</strong> For every dimension, report both the share of <em>applicable</em> cells
+            coded <code>C</code> and the share of <em>all</em> cells coded <code>C</code>. Where the two measures agree,
+            the contrast is robust. Where they diverge, you have a layer-composition artefact and must report the
+            divergence, not the finding.</li>
+    </ol>
+    <h2 id="b-layer-definitions">B. Layer definitions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Layer</th>
+                <th>Diagnostic</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>L1</strong></td>
+                <td><code>definitio</code></td>
+                <td>States or claims to state what humility is. Includes the <em>claim</em> without the content (<em>sic
+                        descripta</em>)</td>
+            </tr>
+            <tr>
+                <td><strong>L2</strong></td>
+                <td><code>praeceptum</code></td>
+                <td>Regulates conduct; legislative or rule-form; force comes from the speaker's office</td>
+            </tr>
+            <tr>
+                <td><strong>L3</strong></td>
+                <td><code>expositio</code></td>
+                <td>Doctrinal exposition and reasoning without legislative force</td>
+            </tr>
+            <tr>
+                <td><strong>L4</strong></td>
+                <td><code>doxologia</code></td>
+                <td>Declarative-praise or meditative description; asserts how things are, not what to do</td>
+            </tr>
+            <tr>
+                <td><strong>L5</strong></td>
+                <td><code>exemplum</code></td>
+                <td>A narrative instance with at least one agent and one patient, offered as informative</td>
+            </tr>
+            <tr>
+                <td><strong>L6</strong></td>
+                <td><code>citatio_sacra</code></td>
+                <td>Reported speech of scripture</td>
+            </tr>
+            <tr>
+                <td><strong>L7</strong></td>
+                <td><code>citatio_aliorum</code></td>
+                <td>Reported speech of a named or anonymous authority (father, philosopher, Sufi master, fellow author)
+                </td>
+            </tr>
+            <tr>
+                <td><strong>L8</strong></td>
+                <td><code>usus</code></td>
+                <td>Residual: the term occurs with no definitional, prescriptive, illustrative or citational function —
+                    bare manner adverbial, liturgical formula, collocation</td>
+            </tr>
+        </tbody>
+    </table>
+    <p><strong>L8 exists on purpose.</strong> Without a residual category, annotators force bare usages into L1 or L3,
+        which inflates the apparent definitional density of the corpus. L8 is also a diagnostic: a high L8 rate means
+        the corpus is being asked to carry material it cannot support.</p>
+    <h2 id="c-the-matrix">C. The matrix</h2>
+    <p><code>C</code> applicable-coded · <code>A</code> applicable-absent · <code>—</code> not applicable ·
+        <code>(e)</code> value evidenced in the pilot records</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Dimension</th>
+                <th>L1</th>
+                <th>L2</th>
+                <th>L3</th>
+                <th>L4</th>
+                <th>L5</th>
+                <th>L6</th>
+                <th>L7</th>
+                <th>L8</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>bodily_component</code></td>
+                <td>A(e)</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td><strong>C(e)</strong></td>
+                <td>A</td>
+                <td>A</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>truth_relation</code></td>
+                <td>A</td>
+                <td>A</td>
+                <td>A</td>
+                <td>A</td>
+                <td><strong>C(e)</strong></td>
+                <td>C</td>
+                <td>C(e)</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>epistemic_component</code></td>
+                <td>A(e)</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>A(e)</td>
+                <td>A(e)</td>
+                <td>C</td>
+                <td><strong>C(e)</strong></td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>precondition_asymmetry</code></td>
+                <td>—</td>
+                <td>A</td>
+                <td>—</td>
+                <td>—</td>
+                <td><strong>C(e)</strong></td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>gender_agent</code> / <code>gender_patient</code></td>
+                <td>—</td>
+                <td>A</td>
+                <td>—</td>
+                <td>A</td>
+                <td><strong>C(e)</strong></td>
+                <td>A</td>
+                <td>A</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>strategic</code></td>
+                <td>A</td>
+                <td>A</td>
+                <td>A</td>
+                <td>—</td>
+                <td><strong>C(e)</strong></td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>voice</code></td>
+                <td>C</td>
+                <td>C(e)</td>
+                <td>C</td>
+                <td>C(e)</td>
+                <td>C(e)</td>
+                <td>C†</td>
+                <td>C†</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>direction</code></td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>structure</code></td>
+                <td>C(e)</td>
+                <td>C(e)</td>
+                <td>C</td>
+                <td>C(e)</td>
+                <td>C(e)</td>
+                <td>C</td>
+                <td>C</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>valence</code></td>
+                <td>C(e)</td>
+                <td>C(e)</td>
+                <td>C</td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>C</td>
+                <td>C</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>visibility</code></td>
+                <td>—</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>C</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>model</code></td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>C(e)</td>
+                <td>C</td>
+                <td>C</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>argument_form</code></td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>A</td>
+                <td>C</td>
+                <td>C</td>
+                <td>C</td>
+                <td>A</td>
+            </tr>
+            <tr>
+                <td><code>citation_truncation</code></td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td><strong>C</strong></td>
+                <td><strong>C(e)</strong></td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>attribution_status</code></td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td><strong>C</strong></td>
+                <td><strong>C(e)</strong></td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>assertion_commitment</code></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+                <td><strong>C</strong></td>
+            </tr>
+            <tr>
+                <td><code>grace_override</code></td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>C(e)</td>
+                <td>A</td>
+                <td>A</td>
+                <td>A</td>
+                <td>—</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>† In L6 and L7, <code>voice</code> describes the <em>cited</em> voice, not the author's. Read together with
+        <code>assertion_commitment</code>, never alone.</p>
+    <p><strong>Reading the matrix.</strong> The body is informative in rules and exempla, not in definitions. The
+        epistemic component is informative in citations and rules, not in definitions or exempla. Asymmetry and gender
+        are informative in exempla. Truncation and attribution status exist nowhere else.
+        <code>assertion_commitment</code> is the only dimension that is unconditional — every unit, in every layer, has
+        a modality of assertion.</p>
+    <p><strong>One correction from the pilot.</strong> In the definition unit of the third record,
+        <code>bodily_component</code> was coded as present. On audit this was over-coding: the definition contains no
+        body term, and the endurance is predicated of the virtue, not of a body. Corrected to <code>A</code>. This is
+        the expected failure mode — annotators (and models) import the body from the neighbouring exemplum into the
+        definition. The matrix row for L1 should be treated as a standing warning against contamination by adjacency.
+    </p>
+    <h2 id="d-required-field-checklists-per-layer">D. Required-field checklists per layer</h2>
+    <h3 id="l1-definitio">L1 <code>definitio</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>structure</code>; <code>valence</code>;
+        <code>argument_form</code>; <strong>new field</strong> <code>definiens_type</code> ∈ {genus-differentia,
+        paraphrase, synonym, metaphor or reification, negative definition, extensional list, scriptural
+        quotation-as-definition}.<br /><strong>Code if present:</strong> <code>epistemic_component</code>,
+        <code>bodily_component</code> — expect <code>A</code> frequently; that is the finding, do not fill it
+        in.<br /><strong>Never code:</strong> <code>citation_truncation</code>, <code>gender_agent</code>,
+        <code>precondition_asymmetry</code>.<br /><strong>Escalate if:</strong> the definiendum is a hypostasis
+        (<em>humilitas est tolleratrix</em>) more than once — the <code>definiens_type</code> list may need a
+        reification sub-type.<br /><strong>Note:</strong> a passage may <em>claim</em> to define without containing a
+        definition (<em>sic descripta</em>, referent outside the excerpt). Code
+        <code>definiens_type: absent_referenced_elsewhere</code> and set <code>context_gap</code>. Do not reconstruct
+        the missing definition.</p>
+    <h3 id="l2-praeceptum">L2 <code>praeceptum</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>bodily_component</code>;
+        <code>visibility</code>; <code>model</code>; <strong>new fields</strong> <code>sanction_present</code>
+        (yes/no/unknown) and <code>addressee_scope</code> ∈ {individual, community, novice, superior}.<br /><strong>Code
+            if present:</strong> <code>grace_override</code> and, if present, <strong>where in the logical
+            structure</strong> the exception sits (exception clause, framing clause, none). The rule passage and the
+        doxological passage place the grace clause differently; that placement is the variable.<br /><strong>Never
+            code:</strong> <code>citation_truncation</code>, <code>gender_patient</code>.<br /><strong>Escalate
+            if:</strong> a rule appears to describe rather than prescribe — likely L3 or L4 misassignment.</p>
+    <h3 id="l3-expositio">L3 <code>expositio</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>argument_form</code> (this is the layer
+        where <code>argument_form</code> earns its place: a fortiori, distinction, syllogism,
+        objection-and-reply).<br /><strong>Code if present:</strong> everything else.<br /><strong>Never code:</strong>
+        <code>citation_truncation</code>, <code>precondition_asymmetry</code>,
+        <code>gender_agent</code>.<br /><strong>Note:</strong> L3 and L1 are distinguished by whether a definiens is
+        offered, not by difficulty.</p>
+    <h3 id="l4-doxologia">L4 <code>doxologia</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>voice</code> (divine initiative vs human
+        activity — the load-bearing field here); <code>direction</code>; <code>structure</code>.<br /><strong>Code if
+            present:</strong> <code>bodily_component</code>, <code>visibility</code>,
+        <code>model</code>.<br /><strong>Never code:</strong> <code>strategic</code>, <code>citation_truncation</code>,
+        <code>precondition_asymmetry</code>, <code>gender_agent</code>.<br /><strong>Escalate if:</strong>
+        <code>strategic</code> is repeatedly requested — the unit is probably L5.</p>
+    <h3 id="l5-exemplum">L5 <code>exemplum</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>gender_agent</code>;
+        <code>gender_patient</code>; <code>precondition_asymmetry</code>; <code>bodily_component</code>; <strong>new
+            field</strong> <code>exemplum_function</code> ∈ {illustrates a prior definition, <strong>exceeds</strong> it
+        (adds content the definition lacks), contradicts it, stands alone}; <strong>new field</strong>
+        <code>agent_specificity</code> ∈ {named individual, named type, anonymous type} (the <em>matrona</em> is an
+        anonymous type, which is why she generalises); <code>outcome</code> (stated / withheld).<br /><strong>Code if
+            present:</strong> <code>truth_relation</code>, <code>strategic</code>,
+        <code>visibility</code>.<br /><strong>Never code:</strong>
+        <code>citation_truncation</code>.<br /><strong>Escalate if:</strong> <code>exemplum_function: exceeds</code>
+        recurs. If exempla systematically out-specify their definitions, then &quot;definition&quot; is the wrong centre
+        of gravity for the whole project and the corpus's conceptual content is located in narrative.</p>
+    <h3 id="l6-citatio-sacra--l7-citatio-aliorum">L6 <code>citatio_sacra</code> / L7 <code>citatio_aliorum</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code> ∈ {quoted_and_endorsed, quoted_and_adapted,
+        quoted_for_refutation, quoted_uncertain}; <code>attribution_status</code> ∈ {verified, plausible, unverified,
+        pseudo-epigraphic}; <code>citation_form</code> ∈ {verbatim, adapted, paraphrased, chapter_only, sigla_only};
+        <code>citation_truncation</code> (yes/no) and, if yes, <strong>whether the omitted material is the material that
+            carries the concept</strong> (in the test passage the ellipsis deletes the half of Ecclesiasticus 2:5 that
+        names humiliation); <code>citation_function</code> ∈ {warrant, objection, definition-by-proxy,
+        ornament}.<br /><strong>Code if present:</strong> <code>epistemic_component</code>, <code>truth_relation</code>
+        — but read as <em>reported</em>, never as the author's position.<br /><strong>Never code:</strong>
+        <code>bodily_component</code> as an attribute of the author's view; <code>precondition_asymmetry</code> without
+        checking whether it is inherited from the source.<br /><strong>Hard rule:</strong> no citation unit may be
+        counted as evidence for the author's own conception unless <code>assertion_commitment</code> is
+        <code>endorsed</code> or <code>adapted</code>. <code>definition-by-proxy</code> is a distinct phenomenon and
+        should be tabulated separately — it is how a tradition imports components it does not
+        generate.<br /><strong>Escalate if:</strong> <code>attribution_status: unverified</code> exceeds a threshold set
+        in advance (suggest 20%). Above that, the corpus's authority structure cannot be analysed until source work is
+        done.</p>
+    <h3 id="l8-usus">L8 <code>usus</code></h3>
+    <p><strong>Must code:</strong> <code>assertion_commitment</code>; <code>structure</code>;
+        <code>direction</code>.<br /><strong>Everything else:</strong> <code>A</code> or
+        <code>N/A</code>.<br /><strong>Note:</strong> L8 units are retained for the recall audit and for collocation
+        work, and excluded from all conceptual contrasts.</p>
+    <h2 id="e-operational-rules">E. Operational rules</h2>
+    <ol>
+        <li><strong>Declare the layer first, on the unit, before coding any dimension.</strong> Layer is assigned per
+            annotation unit, not per passage: the test passage contains one unit of each of L1, L3, L5, L6, L7.</li>
+        <li><strong>One unit, one layer.</strong> Where a unit genuinely mixes functions (a definition that <em>is</em>
+            a scriptural quotation), assign the citational layer and set
+            <code>citation_function: definition_by_proxy</code>. Do not create hybrid layers.</li>
+        <li><strong>Stratified reliability, not uniform.</strong> Do not spread the double-coding budget evenly. Layer
+            assignment propagates to every downstream cell, so double-code <strong>100% of L1, L5, L6 and L7
+                units</strong> and a 15% random sample of L2–L4 and L8. Measure layer agreement <em>before</em> any
+            dimension agreement: if annotators cannot agree on what is an exemplum and what is a definition, the rest of
+            the table is unstable and no reliability figure on the other dimensions means anything.</li>
+        <li><strong>Target agreement, set in advance.</strong> Krippendorff's α ≥ 0.80 for <code>layer</code>,
+            <code>assertion_commitment</code>, <code>structure</code>; ≥ 0.67 for <code>bodily_component</code>,
+            <code>model</code>, <code>valence</code>; no threshold for <code>epistemic_component</code> in the pilot —
+            record the observed value and treat low agreement there as evidence that the dimension needs decomposition.
+        </li>
+        <li><strong>Re-code on scheme change, or flag.</strong> Any unit coded under an earlier matrix version carries
+            <code>scheme_version</code>. Never mix versions in one table without reporting the split.</li>
+        <li><strong>The pivot never determines the layer.</strong> Layer is assigned from the source text. A translation
+            that reads smoothly will make exempla look like assertions and citations look like the author's own view —
+            which is precisely the error this appendix exists to prevent.</li>
+    </ol>
+    <h2 id="f-analysis-rules">F. Analysis rules</h2>
+    <ol>
+        <li><strong>No cross-layer contrasts on any dimension.</strong> Compare L1 with L1, L5 with L5.</li>
+        <li><strong>Layer composition is modelled first.</strong> Tabulate layer × language, × period, × author gender
+            before any conceptual contrast. If the distributions differ — and they will — every subsequent comparison
+            runs within layer or with layer as a fixed effect.</li>
+        <li><strong>Report layer composition as a finding in its own right.</strong> If texts by women, or texts whose
+            exempla are female, are exemplum-heavy and definition-poor, then a &quot;gender difference in the concept of
+            humility&quot; is partly a claim about textual form. The two are separable only by this step.</li>
+        <li><strong>Attribute components to carriers.</strong> Because L6/L7 units are annotated with
+            <code>attribution_status</code> and <code>citation_function</code>, conceptual components can be traced to
+            the authorities that transmit them. If the epistemic component attaches repeatedly to the same cited source
+            across the corpus, it is a property of a transmitted sentence, not of the tradition's concept. This is the
+            analysis the layer structure makes possible and that no frequency method can perform.</li>
+        <li><strong>Denominators.</strong> All percentages computed over applicable cells only (<code>C</code> +
+            <code>A</code>). Report the applicable-cell count alongside every percentage, and report the
+            <code>N/A</code> count so readers can see what was excluded.</li>
+    </ol>
+    <h2 id="g-change-log-format">G. Change log format</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Content</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>added</strong></td>
+                <td><code>truth_relation</code>, <code>precondition_asymmetry</code>, <code>gender_agent</code>,
+                    <code>gender_patient</code>, <code>layer</code>, <code>citation_truncation</code>,
+                    <code>assertion_commitment</code></td>
+            </tr>
+            <tr>
+                <td><strong>moved</strong></td>
+                <td><code>text_type</code> from passage level to unit level</td>
+            </tr>
+            <tr>
+                <td><strong>new values</strong></td>
+                <td><code>probative_trial</code>; <code>imposed_by_others_endured</code>; <code>injury_mark</code>,
+                    <code>pain_endurance</code>, <code>concealment_of_body</code>;
+                    <code>self_accusation_overclaiming_desert</code>, <code>deliberate_misstatement</code>,
+                    <code>confidence_of_being_heard</code>; <code>exemplum_domestic</code>,
+                    <code>imitatio_Christi</code>, <code>definition_claim</code>,
+                    <code>petitionary_administrative_etiquette</code>; <code>hidden</code></td>
+            </tr>
+            <tr>
+                <td><strong>corrected</strong></td>
+                <td>definition unit of P019, <code>bodily_component</code> C → A (adjacency contamination)</td>
+            </tr>
+            <tr>
+                <td><strong>open</strong></td>
+                <td><code>epistemic_component</code> may need decomposition into self-assessment / other-assessment /
+                    assessment-of-desert</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>Two limits to state in the appendix itself. The matrix is derived from three passages, so it is a prediction to
+        be tested against the first hundred units, not a validated instrument — expect the escalation rule to fire. And
+        the whole scheme inherits the assumption that <code>definitio</code>, <code>exemplum</code> and
+        <code>citatio</code> are stable categories across Latin, German and Arabic textual traditions.</p>
+    <h2 id="h-cross-language-limits-of-the-layer-set">H. Cross-language limits of the layer set</h2>
+    <p>The eight layers are derived from Latino-Christian textual practice. Three of them are likely to behave
+        differently elsewhere.</p>
+    <p><strong><code>citatio</code> may not be a stable category.</strong> In the Latin corpus,
+        <code>attribution_status</code> is a modern imposition: texts claim authority without naming it, and the critic
+        supplies the source afterwards. In Arabic Islamic practice attribution is <em>constitutive</em> — the isnād is
+        part of the text's epistemic form, not an editorial addition. So a field designed as philological housekeeping
+        is, in that tradition, a feature of the genre itself. Expect <code>attribution_status</code> to be
+        systematically resolvable in Arabic and systematically unresolvable in Latin, which makes it useless as a
+        cross-language variable and useful as a within-language one.</p>
+    <p><strong><code>definitio</code> is probably over-developed in Arabic, not under-developed.</strong> Kalām and
+        falsafa carry an explicit theory of <em>taʿrīf</em> — <em>ḥadd</em> (real definition, genus and differentia)
+        against <em>rasm</em> (nominal description) — with stated conditions on admissibility. The Latin corpus of the
+        same centuries is less explicit. So <code>definiens_type</code> needs at least the real/nominal split, and the
+        German corpus may need the opposite correction: vernacular mystical prose is often deliberately
+        non-propositional, and the same author can produce a scholastic layer profile in Latin and an entirely different
+        one in German. That is a warning for the language variable in its strongest form — if layer profile is partly a
+        function of which textual forms a language makes available, then &quot;the German concept of humility
+        differs&quot; is partly &quot;German had no vernacular summa.&quot;</p>
+    <p><strong>Two layers may collapse, and one is missing.</strong> A Qurʾānic quotation inside a Sufi text frequently
+        functions as invocation rather than as warrant, so <code>doxologia</code> and <code>citatio_sacra</code> can
+        merge, and <code>citation_function</code> needs a value like <em>performative</em> that the Latin material never
+        requires. Conversely the Arabic corpus will contain witness verse (<em>shāhid</em>) — poetry cited as normative
+        and linguistic authority — which has no counterpart in the Latin set and will otherwise be dumped into
+        <code>usus</code>.</p>
+    <p><strong>The exemplum may invert by default.</strong> The Latin <em>exemplum</em> proves a prior statement. The
+        Sufi <em>ḥikāya</em> is often designed to unsettle the reader's grip on the proposition it follows. If so,
+        <code>exemplum_function: exceeds</code> — flagged as an escalation trigger — will be the norm in Arabic rather
+        than the anomaly, and the escalation rule must be calibrated per language or it will fire continuously and mean
+        nothing.</p>
+    <p><strong>The remedy is not to relativise the scheme.</strong> Keep the layer set fixed as a comparative concept,
+        in Haspelmath's sense: an instrument stipulated by the analyst, never a category the texts share. Add one field,
+        <code>layer_local_label</code>, recording what the tradition itself calls the thing — <em>taʿrīf</em>,
+        <em>ḥikāya</em>, <em>shāhid</em>, <em>exemplum</em> — and record its absence where there is no word.
+        Cross-language comparison then runs on the fixed set, and the divergence between the fixed set and the local
+        labels becomes a result rather than a breakdown.</p>
+    <p><strong>Falsifiable prediction to carry into the first hundred units:</strong> the distribution of layers differs
+        significantly by language, and the epistemic component's attachment to <code>citatio_aliorum</code> replicates
+        across Latin and German but not across Arabic. If the first part fails, the layer structure is not doing work.
+        If only the second fails, you have found a genuine conceptual difference rather than a formal one — which is the
+        outcome you want, and the one this design is capable of distinguishing.</p>
+    <hr />
+    <h3 id="prompt-2">Prompt</h3>
+    <blockquote>
+        <p>Finish former interrupted conversation</p>
+    </blockquote>
+    <h3 id="answer-6">Answer</h3>
+    <p>…material is where that assumption will be tested first, and it may not survive intact.</p>
+    <h2 id="h-cross-language-limits-of-the-layer-set-1">H. Cross-language limits of the layer set</h2>
+    <p>The eight layers are derived from Latino-Christian textual practice. Three of them are likely to behave
+        differently elsewhere.</p>
+    <p><strong><code>citatio</code> may not be a stable category.</strong> In the Latin corpus,
+        <code>attribution_status</code> is a modern imposition: texts claim authority without naming it, and the critic
+        supplies the source afterwards. In Arabic Islamic practice attribution is <em>constitutive</em> — the isnād is
+        part of the text's epistemic form, not an editorial addition. So a field I designed as philological housekeeping
+        is, in that tradition, a feature of the genre itself. Expect <code>attribution_status</code> to be
+        systematically resolvable in Arabic and systematically unresolvable in Latin, which makes it useless as a
+        cross-language variable and useful as a within-language one.</p>
+    <p><strong><code>definitio</code> is probably over-developed in Arabic, not under-developed.</strong> Kalām and
+        falsafa carry an explicit theory of <em>taʿrīf</em> — <em>ḥadd</em> (real definition, genus and differentia)
+        against <em>rasm</em> (nominal description) — with stated conditions on admissibility. The Latin corpus of the
+        same centuries is less explicit. So <code>definiens_type</code> needs at least the real/nominal split, and the
+        German corpus may need the opposite correction: vernacular mystical prose is often deliberately
+        non-propositional, and the same author can produce a scholastic layer profile in Latin and an entirely different
+        one in German. That is a warning for your language variable in its strongest form — if layer profile is partly a
+        function of which textual forms a language makes available, then &quot;the German concept of humility
+        differs&quot; is partly &quot;German had no vernacular summa.&quot;</p>
+    <p><strong>Two layers may collapse, and one is missing.</strong> A Qurʾānic quotation inside a Sufi text frequently
+        functions as invocation rather than as warrant, so <code>doxologia</code> and <code>citatio_sacra</code> can
+        merge, and <code>citation_function</code> needs a value like <em>performative</em> that the Latin material never
+        requires. Conversely the Arabic corpus will contain witness verse (<em>shāhid</em>) — poetry cited as normative
+        and linguistic authority — which has no counterpart in the Latin set and will otherwise be dumped into
+        <code>usus</code>.</p>
+    <p><strong>The exemplum may invert by default.</strong> The Latin <em>exemplum</em> proves a prior statement. The
+        Sufi <em>ḥikāya</em> is often designed to unsettle the reader's grip on the proposition it follows. If so,
+        <code>exemplum_function: exceeds</code> — which I flagged as an escalation trigger — will be the norm in Arabic
+        rather than the anomaly, and the escalation rule must be calibrated per language or it will fire continuously
+        and mean nothing.</p>
+    <p><strong>The remedy is not to relativise the scheme.</strong> Keep the layer set fixed as a comparative concept,
+        in Haspelmath's sense: an instrument stipulated by the analyst, never a category the texts share. Add one field,
+        <code>layer_local_label</code>, recording what the tradition itself calls the thing — <em>taʿrīf</em>,
+        <em>ḥikāya</em>, <em>shāhid</em>, <em>exemplum</em>, and its German equivalents — and record its absence where
+        there is no word. Cross-language comparison then runs on the fixed set, and the divergence between the fixed set
+        and the local labels becomes a result rather than a breakdown.</p>
+    <p><strong>Falsifiable prediction to carry into the first hundred units:</strong> the distribution of layers differs
+        significantly by language, and the epistemic component's attachment to <code>citatio_aliorum</code> replicates
+        across Latin and German but not across Arabic. If the first part fails, the layer structure is not doing work.
+        If only the second fails, you have found a genuine conceptual difference rather than a formal one — which is the
+        outcome you want, and the one this design is capable of distinguishing.</p>
+    <p>The two artefacts still outstanding are the coding manual with anchored exemplars for each dimension (the thing
+        that makes α reachable), and the source-lemma recall protocol.</p>
+    <hr />
+    <h2 id="outstanding-artefacts">Outstanding artefacts</h2>
+    <ol>
+        <li><strong>Coding manual</strong> — anchored exemplars for each dimension, per layer, the condition for
+            inter-annotator agreement to be reachable at all.</li>
+        <li><strong>Source-lemma recall protocol</strong> — the procedure that converts the pivot-translation objection
+            from a validity problem into a measured limitation.</li>
+    </ol>
+    <h1 id="conclusion">Conclusion</h1>
+    <p>Then a short close on what now stands.</p>
+    <p>The methodological spine is settled. English functions as a comparative concept in Haspelmath's sense — declared,
+        documented, never a descriptive category shared by <em>humilitas</em>, <em>diemuot</em> and <em>tawāḍuʿ</em>.
+        Its use is heuristic, so precision is safe and recall is the only quantity that must be measured, from the
+        source lemmata rather than from the pivot. The instrument is a source-keyed annotation decomposed into units,
+        with the layer declared before any dimension is coded, and with three states rather than two so that &quot;the
+        text does not say this&quot; never collapses into &quot;the scheme does not ask here.&quot;</p>
+    <p>What three passages already established, provisionally: the same lemma carries opposite structures in two Latin
+        texts of the same period; the epistemic component is absent from definitions and present in citations; the body
+        appears only in rules and exempla; an exemplum can out-specify the definition it illustrates, so filtering to
+        doctrinal material would delete the concept's content; gender must be coded twice, for the author and for the
+        agent inside the exemplum; and layer composition is a standing competing explanation for every language and
+        gender effect the corpus will produce.</p>
+    <p>Three items are open and they are philological, not computational: the <code>son</code>/<code>non</code> reading
+        in P018, the unverified Augustinian attribution in P019, and the truncated Ecclesiasticus clause. Two of them
+        carry an entire annotation unit, so they should be settled against critical editions before the gold set is
+        coded.</p>
+    <p>The scheme is n=3. It is a prediction to be tested against the first hundred units, and the escalation rule
+        should be expected to fire.</p>
 
 </body>
+
 </html>
